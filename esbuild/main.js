@@ -12723,7 +12723,7 @@
 
   // src/main.ts
   var pdfjsLib = __toESM(require_pdf());
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "pdfjs-dist/pdf.worker.min.js";
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "pdfjs-dist/build/pdf.worker.min.js";
   var PDFUploader = document.getElementById("PDFUploader");
   var PDFContainer = document.getElementById("PDFContainer");
   PDFUploader.addEventListener("change", (ev) => {
@@ -12733,8 +12733,15 @@
     PDFUploader.style.display = "none";
     loadPDF(uri);
   });
+  PDFUploader.style.display = "none";
+  loadPDF("sample.pdf");
   async function loadPDF(url) {
-    const doc = await pdfjsLib.getDocument(url).promise;
+    const doc = await pdfjsLib.getDocument({
+      url,
+      cMapUrl: "pdfjs-dist/cmaps",
+      cMapPacked: true,
+      fontExtraProperties: true
+    }).promise;
     for (var i = 1; i <= doc.numPages; i++)
       await renderDocAsSVG(doc, i);
   }
