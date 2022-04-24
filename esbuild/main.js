@@ -12728,7 +12728,7 @@
   var PDFContainer = document.getElementById("PDFContainer");
   PDFUploader.addEventListener("change", (ev) => {
     ev.preventDefault();
-    const file = ev.target.files[0];
+    const file = PDFUploader.files[0];
     const uri = URL.createObjectURL(file);
     PDFUploader.style.display = "none";
     loadPDF(uri);
