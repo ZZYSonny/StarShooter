@@ -1,0 +1,19 @@
+#PDFUploader{
+    width: 100vw;
+    height: 100vh;
+}
+
+#PDFContainer{
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+    /*background-color: lightgrey;*/
+}
+
+.PageContainer{
+    /*flex-flow: row;*/
+    margin: 10px;
+    background-color: white;
+    box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+}
