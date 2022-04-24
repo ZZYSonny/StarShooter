@@ -19710,10 +19710,11 @@
     const uri = URL.createObjectURL(file);
     loadPDF(uri);
   });
+  var pdfViewerContainer = document.getElementById("viewerContainer");
   var eventBus = new pdfjsViewer.EventBus();
   var pdfLinkService = new pdfjsViewer.PDFLinkService({ eventBus });
   var pdfViewer = new pdfjsViewer.PDFViewer({
-    container: document.getElementById("viewerContainer"),
+    container: pdfViewerContainer,
     eventBus,
     linkService: pdfLinkService,
     renderer: "svg",
@@ -19724,6 +19725,7 @@
   eventBus.on("pagesinit", () => {
     pdfViewer.currentScaleValue = "1";
   });
+  pdfViewerContainer.style.display = "none";
   async function loadPDF(url) {
     const pdfDocument = await pdfjsLib.getDocument({
       url,
@@ -19731,6 +19733,7 @@
       cMapPacked: true
     }).promise;
     PDFUploader.style.display = "none";
+    pdfViewerContainer.style.display = "";
     pdfViewer.setDocument(pdfDocument);
     pdfLinkService.setDocument(pdfDocument, null);
   }
