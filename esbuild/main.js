@@ -12733,7 +12733,6 @@
     PDFUploader.style.display = "none";
     loadPDF(uri);
   });
-  PDFUploader.style.display = "none";
   loadPDF("sample.pdf");
   async function loadPDF(url) {
     const doc = await pdfjsLib.getDocument({
@@ -12742,6 +12741,7 @@
       cMapPacked: true,
       fontExtraProperties: true
     }).promise;
+    PDFUploader.style.display = "none";
     for (var i = 1; i <= doc.numPages; i++)
       await renderDocAsSVG(doc, i);
   }
