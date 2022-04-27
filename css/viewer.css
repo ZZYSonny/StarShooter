@@ -10,20 +10,39 @@
     align-items: center;
 }
 
-.PageContainer{
-    margin: 10px;
-    background-color: white;
-    box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
-}
 
 body {
     margin: 0;
     padding: 0;
 }
 
-#viewerContainer {
-  overflow: auto;
-  position: absolute;
-  width: 100%;
-  height: 100%;
+.PageContainer{
+  margin: 10px;
+  background-color: white;
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+  position: relative;
 }
+
+.SvgContainer {
+  position: relative;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.HtmlContainer {
+  color: transparent;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+
+.HtmlContainer > div {
+  background-color: transparent !important
+}
+
+::selection {
+  color: transparent;
+  background: rgba(177, 25, 194, 0.5);
+} 
