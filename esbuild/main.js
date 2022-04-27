@@ -4471,6 +4471,7 @@
   var PDFUploader = document.getElementById("PDFUploader");
   var PDFContainer = document.getElementById("PDFContainer");
   var mupdf_promise = (0, import_mupdf_js.default)();
+  var is_screenshoting = false;
   PDFUploader.addEventListener("change", (ev) => {
     ev.preventDefault();
     const file = PDFUploader.files[0];
@@ -4497,12 +4498,13 @@
     document.addEventListener("keydown", (ev) => {
       if (ev.key == "PrintScreen")
         document.querySelectorAll(":hover").forEach((div) => {
-          if (div.className == "PageContainer")
+          if (!is_screenshoting && div.className == "PageContainer")
             handleScreenshot(mu, doc, div);
         });
     });
   }
   async function handleScreenshot(mu, doc, div) {
+    is_screenshoting = true;
     const background = document.createElement("div");
     const selection = document.createElement("div");
     background.className = "ScreenshotBackground";
@@ -4528,8 +4530,8 @@
       const page_id = parseInt(div.id.split("_").pop());
       const svg_str = mu.drawPageAsSVG(doc, page_id);
       const svg_lines = svg_str.split("\n");
-      const width = parseInt(svg_lines[2].match(/width="\d*/)[0].split('"')[1]);
-      const height = parseInt(svg_lines[2].match(/height="\d*/)[0].split('"')[1]);
+      const width = parseFloat(svg_lines[2].match(/width="\d*/)[0].split('"')[1]);
+      const height = parseFloat(svg_lines[2].match(/height="\d*/)[0].split('"')[1]);
       const scaleX = width / background_rect.width;
       const scaleY = height / background_rect.height;
       const nvb_arr = [
@@ -4538,12 +4540,9 @@
         Math.ceil(selection_rect.width * scaleX),
         Math.ceil(selection_rect.height * scaleY)
       ];
-      download("screenshot.svg", svg_str.replace(`width="${width}pt" height="${height}pt" viewBox="0 0 ${width} ${height}"`, `width="${nvb_arr[2]}pt" height="${nvb_arr[3]}pt" viewBox="${nvb_arr.join(" ")}"`));
+      is_screenshoting = false;
+      download("screenshot.svg", svg_str.replace(/width="([0-9]*[.])?[0-9]+pt" height="([0-9]*[.])?[0-9]+pt" viewBox="0 0 ([0-9]*[.])?[0-9]+ ([0-9]*[.])?[0-9]+"/, `width="${nvb_arr[2]}pt" height="${nvb_arr[3]}pt" viewBox="${nvb_arr.join(" ")}"`));
     });
-  }
-  async function loadPDFURL(url) {
-    const file = await fetch(url);
-    await loadPDF(file.arrayBuffer());
   }
   function download(filename, text) {
     var element = document.createElement("a");
@@ -4554,7 +4553,4 @@
     element.click();
     document.body.removeChild(element);
   }
-  loadPDFURL("sample1.pdf").catch((err) => {
-    console.log("Not in Development");
-  });
 })();

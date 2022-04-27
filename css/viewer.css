@@ -48,7 +48,7 @@ body {
 }
 
 .ScreenshotSelection{
-  background: red;
+  background: rgba(255, 0, 0, 0.6);
   z-index: 4;
   position: absolute;
 }
