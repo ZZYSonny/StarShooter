@@ -4490,13 +4490,69 @@
       svg_div.innerHTML = svg_str;
       const page_div = document.createElement("div");
       page_div.className = "PageContainer";
+      page_div.id = "page_container_" + i;
       page_div.append(svg_div);
       PDFContainer.appendChild(page_div);
     }
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key == "PrintScreen")
+        document.querySelectorAll(":hover").forEach((div) => {
+          if (div.className == "PageContainer")
+            handleScreenshot(mu, doc, div);
+        });
+    });
+  }
+  async function handleScreenshot(mu, doc, div) {
+    const background = document.createElement("div");
+    const selection = document.createElement("div");
+    background.className = "ScreenshotBackground";
+    selection.className = "ScreenshotSelection";
+    background.append(selection);
+    div.append(background);
+    const mouseDownHandler = (ev) => {
+      const rect = div.getBoundingClientRect();
+      selection.style.left = ev.clientX - rect.left + "px";
+      selection.style.top = ev.clientY - rect.top + "px";
+      background.removeEventListener("mousedown", mouseDownHandler);
+    };
+    background.addEventListener("mousedown", mouseDownHandler);
+    background.addEventListener("mousemove", (ev) => {
+      const rect = div.getBoundingClientRect();
+      selection.style.right = rect.right - ev.clientX + "px";
+      selection.style.bottom = rect.bottom - ev.clientY + "px";
+    });
+    background.addEventListener("mouseup", async (ev) => {
+      const selection_rect = selection.getBoundingClientRect();
+      const background_rect = background.getBoundingClientRect();
+      background.remove();
+      const page_id = parseInt(div.id.split("_").pop());
+      const svg_str = mu.drawPageAsSVG(doc, page_id);
+      const svg_lines = svg_str.split("\n");
+      const width = parseInt(svg_lines[2].match(/width="\d*/)[0].split('"')[1]);
+      const height = parseInt(svg_lines[2].match(/height="\d*/)[0].split('"')[1]);
+      const scaleX = width / background_rect.width;
+      const scaleY = height / background_rect.height;
+      const nvb_arr = [
+        Math.floor(scaleX * (selection_rect.left - background_rect.left)),
+        Math.floor(scaleY * (selection_rect.top - background_rect.top)),
+        Math.ceil(selection_rect.width * scaleX),
+        Math.ceil(selection_rect.height * scaleY)
+      ];
+      download("screenshot.svg", svg_str.replace(`width="${width}pt" height="${height}pt" viewBox="0 0 ${width} ${height}"`, `width="${nvb_arr[2]}pt" height="${nvb_arr[3]}pt" viewBox="${nvb_arr.join(" ")}"`));
+    });
   }
   async function loadPDFURL(url) {
     const file = await fetch(url);
     await loadPDF(file.arrayBuffer());
+  }
+  function download(filename, text) {
+    var element = document.createElement("a");
+    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(text));
+    element.setAttribute("download", filename);
+    element.style.display = "none";
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   }
   loadPDFURL("sample1.pdf").catch((err) => {
     console.log("Not in Development");
