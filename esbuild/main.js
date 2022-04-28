@@ -4485,7 +4485,6 @@
     const numPage = mu.countPages(doc);
     for (var i = 1; i <= numPage; i++) {
       const svg_str = mu.drawPageAsSVG(doc, i).replaceAll("font_", i + "_font_");
-      const html_str = mu.drawPageAsHTML(doc, i);
       const svg_div = document.createElement("div");
       svg_div.className = "SvgContainer";
       svg_div.innerHTML = svg_str;
