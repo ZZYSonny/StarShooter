@@ -4488,10 +4488,15 @@
       const svg_div = document.createElement("div");
       svg_div.className = "SvgContainer";
       svg_div.innerHTML = svg_str;
+      const html_str = mu.drawPageAsHTML(doc, i);
+      const html_div = document.createElement("div");
+      html_div.className = "HtmlContainer";
+      html_div.innerHTML = html_str;
       const page_div = document.createElement("div");
       page_div.className = "PageContainer";
       page_div.id = "page_container_" + i;
       page_div.append(svg_div);
+      page_div.append(html_div);
       PDFContainer.appendChild(page_div);
     }
     document.addEventListener("keydown", (ev) => {
