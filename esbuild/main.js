@@ -4483,22 +4483,24 @@
     const doc = mu.load(buf8);
     PDFUploader.style.display = "none";
     const numPage = mu.countPages(doc);
-    for (var i = 1; i <= numPage; i++) {
-      const svg_str = mu.drawPageAsSVG(doc, i).replaceAll("font_", i + "_font_");
-      const svg_div = document.createElement("div");
-      svg_div.className = "SvgContainer";
-      svg_div.innerHTML = svg_str;
-      const html_str = mu.drawPageAsHTML(doc, i);
-      const html_div = document.createElement("div");
-      html_div.className = "HtmlContainer";
-      html_div.innerHTML = html_str;
-      const page_div = document.createElement("div");
-      page_div.className = "PageContainer";
-      page_div.id = "page_container_" + i;
-      page_div.append(svg_div);
-      page_div.append(html_div);
-      PDFContainer.appendChild(page_div);
+    var bottomPageNum = 0;
+    var bottomPageTop = 0;
+    for (bottomPageNum = 1; bottomPageNum <= Math.min(3, numPage); bottomPageNum++) {
+      const lastDiv = await addPage(doc, bottomPageNum);
+      bottomPageTop = lastDiv.getBoundingClientRect().top;
     }
+    document.addEventListener("scroll", async (ev) => {
+      if (window.scrollY + window.innerHeight > bottomPageTop) {
+        console.log(window.scrollY + window.innerHeight, bottomPageTop);
+        bottomPageTop = 999999999999;
+        const bottomTargetPageNum = Math.min(bottomPageNum + 1, numPage);
+        for (; bottomPageNum < bottomTargetPageNum; bottomPageNum++) {
+          console.log(bottomPageNum);
+          const lastDiv = await addPage(doc, bottomPageNum);
+          bottomPageTop = lastDiv.getBoundingClientRect().top;
+        }
+      }
+    });
     document.addEventListener("keydown", (ev) => {
       if (ev.key == "PrintScreen")
         document.querySelectorAll(":hover").forEach((div) => {
@@ -4506,6 +4508,24 @@
             handleScreenshot(mu, doc, div);
         });
     });
+  }
+  async function addPage(doc, i) {
+    const mu = await mupdf_promise;
+    const svg_str = mu.drawPageAsSVG(doc, i).replaceAll("font_", i + "_font_");
+    const svg_div = document.createElement("div");
+    svg_div.className = "SvgContainer";
+    svg_div.innerHTML = svg_str;
+    const html_str = mu.drawPageAsHTML(doc, i);
+    const html_div = document.createElement("div");
+    html_div.className = "HtmlContainer";
+    html_div.innerHTML = html_str;
+    const page_div = document.createElement("div");
+    page_div.className = "PageContainer";
+    page_div.id = "page_container_" + i;
+    page_div.append(svg_div);
+    page_div.append(html_div);
+    PDFContainer.appendChild(page_div);
+    return page_div;
   }
   async function handleScreenshot(mu, doc, div) {
     is_screenshoting = true;
@@ -4548,6 +4568,10 @@
       download("screenshot.svg", svg_str.replace(/width="([0-9]*[.])?[0-9]+pt" height="([0-9]*[.])?[0-9]+pt" viewBox="0 0 ([0-9]*[.])?[0-9]+ ([0-9]*[.])?[0-9]+"/, `width="${nvb_arr[2]}pt" height="${nvb_arr[3]}pt" viewBox="${nvb_arr.join(" ")}"`));
     });
   }
+  async function loadPDFURL(url) {
+    const file = await fetch(url);
+    await loadPDF(file.arrayBuffer());
+  }
   function download(filename, text) {
     var element = document.createElement("a");
     element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(text));
@@ -4557,4 +4581,7 @@
     element.click();
     document.body.removeChild(element);
   }
+  loadPDFURL("sample1.pdf").catch((err) => {
+    console.log("Not in Development");
+  });
 })();
