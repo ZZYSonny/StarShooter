@@ -4487,7 +4487,7 @@
     var bottomPageTop = 0;
     for (bottomPageNum = 1; bottomPageNum <= Math.min(3, numPage); bottomPageNum++) {
       const lastDiv = await addPage(doc, bottomPageNum);
-      bottomPageTop = lastDiv.getBoundingClientRect().top;
+      bottomPageTop = lastDiv.getBoundingClientRect().top + window.scrollY;
     }
     document.addEventListener("scroll", async (ev) => {
       if (window.scrollY + window.innerHeight > bottomPageTop) {
@@ -4497,7 +4497,7 @@
         for (; bottomPageNum < bottomTargetPageNum; bottomPageNum++) {
           console.log(bottomPageNum);
           const lastDiv = await addPage(doc, bottomPageNum);
-          bottomPageTop = lastDiv.getBoundingClientRect().top;
+          bottomPageTop = lastDiv.getBoundingClientRect().top + window.scrollY;
         }
       }
     });
