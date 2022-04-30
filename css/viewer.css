@@ -32,7 +32,7 @@ body {
 }
 
 .HtmlContainer {
-  color: transparent;
+  color: transparent !important;
   position: absolute;
   top: 0;
   left: 0;
