@@ -4511,7 +4511,7 @@
   }
   async function addPage(doc, i) {
     const mu = await mupdf_promise;
-    const svg_str = mu.drawPageAsSVG(doc, i).replaceAll("font_", `font_${i}_`).replaceAll('<mask id="ma', `<mask id="ma_${i}_`).replaceAll('<g mask="url(#ma', `<g mask="url(#ma_${i}_`).replaceAll('<clipPath id="cp', `<clipPath id="cp_${i}_`).replaceAll('<g clip-path="url(#cp', `<g clip-path="url(#cp_${i}_`);
+    const svg_str = mu.drawPageAsSVG(doc, i).replaceAll("font_", `font_${i}_`).replaceAll('<mask id="ma', `<mask id="ma_${i}_`).replaceAll('"url(#ma', `"url(#ma_${i}_`).replaceAll('<clipPath id="cp', `<clipPath id="cp_${i}_`).replaceAll('"url(#cp', `"url(#cp_${i}_`);
     const svg_div = document.createElement("div");
     svg_div.className = "SvgContainer";
     svg_div.innerHTML = svg_str;
