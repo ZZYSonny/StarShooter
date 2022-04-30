@@ -4502,11 +4502,22 @@
       }
     });
     document.addEventListener("keydown", (ev) => {
-      if (ev.key == "PrintScreen")
-        document.querySelectorAll(":hover").forEach((div) => {
-          if (!is_screenshoting && div.className == "PageContainer")
-            handleScreenshot(mu, doc, div);
-        });
+      const curPage = document.querySelectorAll(".PageContainer:hover")[0];
+      if (curPage) {
+        const curPageNum = parseInt(curPage.id.split("page_container_")[1]);
+        console.log(curPageNum);
+        if (ev.key == "PrintScreen" && !is_screenshoting) {
+          handleScreenshot(mu, doc, curPage);
+        } else if (ev.key == "n") {
+          const targetPage = PDFContainer.children[curPageNum - 1 + 1];
+          if (targetPage)
+            window.scrollTo({ top: targetPage.offsetTop });
+        } else if (ev.key == "k") {
+          const targetPage = PDFContainer.children[curPageNum - 1 - 1];
+          if (targetPage)
+            window.scrollTo({ top: targetPage.offsetTop });
+        }
+      }
     });
   }
   async function addPage(doc, i) {
@@ -4563,6 +4574,10 @@
       download("screenshot.svg", svg_str.replace(/width="([0-9]*[.])?[0-9]+pt" height="([0-9]*[.])?[0-9]+pt" viewBox="0 0 ([0-9]*[.])?[0-9]+ ([0-9]*[.])?[0-9]+"/, `width="${nvb_arr[2]}pt" height="${nvb_arr[3]}pt" viewBox="${nvb_arr.join(" ")}"`));
     });
   }
+  async function loadPDFURL(url) {
+    const file = await fetch(url);
+    await loadPDF(file.arrayBuffer());
+  }
   function download(filename, text) {
     var element = document.createElement("a");
     element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(text));
@@ -4572,4 +4587,7 @@
     element.click();
     document.body.removeChild(element);
   }
+  loadPDFURL("sample1.pdf").catch((err) => {
+    console.log("Not in Development");
+  });
 })();
