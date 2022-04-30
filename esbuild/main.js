@@ -4483,21 +4483,22 @@
     const doc = mu.load(buf8);
     PDFUploader.style.display = "none";
     const numPage = mu.countPages(doc);
-    var bottomPageNum = 0;
+    var bottomPageNum = 1;
     var bottomPageTop = 0;
-    for (bottomPageNum = 1; bottomPageNum <= Math.min(3, numPage); bottomPageNum++) {
+    while (bottomPageTop < 2 * window.innerHeight) {
       const lastDiv = await addPage(doc, bottomPageNum);
-      bottomPageTop = lastDiv.getBoundingClientRect().top + window.scrollY;
+      bottomPageTop = lastDiv.offsetTop;
+      bottomPageNum++;
     }
     document.addEventListener("scroll", async (ev) => {
-      if (window.scrollY + window.innerHeight > bottomPageTop) {
+      while (window.scrollY + window.innerHeight > bottomPageTop) {
         console.log(window.scrollY + window.innerHeight, bottomPageTop);
         bottomPageTop = 999999999999;
-        const bottomTargetPageNum = Math.min(bottomPageNum + 1, numPage);
-        for (; bottomPageNum < bottomTargetPageNum; bottomPageNum++) {
+        if (bottomPageNum <= numPage) {
           console.log(bottomPageNum);
           const lastDiv = await addPage(doc, bottomPageNum);
-          bottomPageTop = lastDiv.getBoundingClientRect().top + window.scrollY;
+          bottomPageTop = lastDiv.offsetTop;
+          bottomPageNum++;
         }
       }
     });
