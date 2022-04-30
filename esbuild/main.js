@@ -4484,22 +4484,40 @@
     PDFUploader.style.display = "none";
     const numPage = mu.countPages(doc);
     var bottomPageNum = 1;
-    var bottomPageTop = 0;
+    var bottomPageTop = 10;
+    const addPage = async (i) => {
+      const svg_str = mu.drawPageAsSVG(doc, i);
+      const svg_div = document.createElement("img");
+      svg_div.className = "SvgContainer";
+      const svg_blob = new Blob([svg_str], { type: "image/svg+xml" });
+      const svg_url = URL.createObjectURL(svg_blob);
+      svg_div.src = svg_url;
+      const pageHeight = mu.pageHeight(doc, i, 96);
+      const page_div = document.createElement("div");
+      page_div.className = "PageContainer";
+      page_div.id = "page_container_" + i;
+      page_div.append(svg_div);
+      PDFContainer.appendChild(page_div);
+      bottomPageTop += Math.floor(pageHeight) + 24;
+      return page_div;
+    };
     while (bottomPageTop < 2 * window.innerHeight) {
-      const lastDiv = await addPage(doc, bottomPageNum);
-      bottomPageTop = lastDiv.offsetTop;
+      const lastDiv = await addPage(bottomPageNum);
       bottomPageNum++;
     }
+    var adding = false;
     document.addEventListener("scroll", async (ev) => {
-      while (window.scrollY + window.innerHeight > bottomPageTop) {
-        console.log(window.scrollY + window.innerHeight, bottomPageTop);
-        bottomPageTop = 999999999999;
-        if (bottomPageNum <= numPage) {
-          console.log(bottomPageNum);
-          const lastDiv = await addPage(doc, bottomPageNum);
-          bottomPageTop = lastDiv.offsetTop;
-          bottomPageNum++;
+      console.log(window.scrollY + window.innerHeight, bottomPageTop);
+      if (!adding) {
+        adding = true;
+        while (window.scrollY + 2 * window.innerHeight > bottomPageTop) {
+          if (bottomPageNum <= numPage) {
+            console.log(bottomPageNum);
+            const lastDiv = await addPage(bottomPageNum);
+            bottomPageNum++;
+          }
         }
+        adding = false;
       }
     });
     document.addEventListener("keydown", (ev) => {
@@ -4520,19 +4538,6 @@
         }
       }
     });
-  }
-  async function addPage(doc, i) {
-    const mu = await mupdf_promise;
-    const svg_str = mu.drawPageAsSVG(doc, i).replaceAll("font_", `font_${i}_`).replaceAll('<mask id="ma', `<mask id="ma_${i}_`).replaceAll('"url(#ma', `"url(#ma_${i}_`).replaceAll('<clipPath id="cp', `<clipPath id="cp_${i}_`).replaceAll('"url(#cp', `"url(#cp_${i}_`);
-    const svg_div = document.createElement("div");
-    svg_div.className = "SvgContainer";
-    svg_div.innerHTML = svg_str;
-    const page_div = document.createElement("div");
-    page_div.className = "PageContainer";
-    page_div.id = "page_container_" + i;
-    page_div.append(svg_div);
-    PDFContainer.appendChild(page_div);
-    return page_div;
   }
   async function handleScreenshot(mu, doc, div) {
     is_screenshoting = true;
