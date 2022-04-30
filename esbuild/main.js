@@ -4511,7 +4511,7 @@
   }
   async function addPage(doc, i) {
     const mu = await mupdf_promise;
-    const svg_str = mu.drawPageAsSVG(doc, i).replaceAll("font_", i + "_font_");
+    const svg_str = mu.drawPageAsSVG(doc, i).replaceAll("font_", i + "_font_").replaceAll("\n", "");
     const svg_div = document.createElement("div");
     svg_div.className = "SvgContainer";
     svg_div.innerHTML = svg_str;
@@ -4563,10 +4563,6 @@
       download("screenshot.svg", svg_str.replace(/width="([0-9]*[.])?[0-9]+pt" height="([0-9]*[.])?[0-9]+pt" viewBox="0 0 ([0-9]*[.])?[0-9]+ ([0-9]*[.])?[0-9]+"/, `width="${nvb_arr[2]}pt" height="${nvb_arr[3]}pt" viewBox="${nvb_arr.join(" ")}"`));
     });
   }
-  async function loadPDFURL(url) {
-    const file = await fetch(url);
-    await loadPDF(file.arrayBuffer());
-  }
   function download(filename, text) {
     var element = document.createElement("a");
     element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(text));
@@ -4576,7 +4572,4 @@
     element.click();
     document.body.removeChild(element);
   }
-  loadPDFURL("sample1.pdf").catch((err) => {
-    console.log("Not in Development");
-  });
 })();
