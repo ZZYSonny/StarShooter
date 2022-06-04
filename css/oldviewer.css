@@ -1,0 +1,69 @@
+#PDFUploader{
+    width: 100%;
+    height: 95vh;
+}
+
+#PDFContainer{
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+}
+
+
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.PageContainer{
+  margin: 10px;
+  background-color: white;
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+  position: relative;
+  contain: size, layout, style, paint;
+}
+
+.SvgContainer {
+  position: relative;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.HtmlContainer {
+  color: transparent !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+
+.HtmlContainer > div {
+  background-color: transparent !important;
+  /*HTML Layer Debug
+  color: green;
+  opacity: 0.3;*/
+}
+
+::selection {
+  color: white;
+  background: rgba(163, 25, 194, 0.5);
+}
+
+.ScreenshotSelection{
+  background: rgba(255, 0, 0, 0.6);
+  z-index: 4;
+  position: absolute;
+}
+
+.ScreenshotBackground{
+  background: rgb(128,128,128,0.5);
+  z-index: 3;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
