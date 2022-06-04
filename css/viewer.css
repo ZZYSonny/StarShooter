@@ -8,3 +8,8 @@
   image-rendering: -webkit-optimize-contrast;
   box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
 }
+
+.FileUploader{
+  width: 100%;
+  height: 95vh;
+}
