@@ -5,7 +5,7 @@
 }
 
 .PDFPageImage{
-  image-rendering: -webkit-optimize-contrast;
+  image-rendering: var(--image-quality);
   box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
 }
 
