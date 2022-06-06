@@ -1,11 +1,14 @@
 .PDFPageContainer{
   text-align: center;
   position: absolute;
+  contain:  size, layout, paint;
   width: 100%;
 }
 
 .PDFPageImage{
   image-rendering: var(--image-quality);
+  will-change: contents;
+  contain:  size, layout, paint;
   box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
 }
 
