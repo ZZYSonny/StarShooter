@@ -685,6 +685,7 @@ struct fz_font
 {
 	int refs;
 	char name[32];
+	int as_text;
 	fz_buffer *buffer;
 
 	fz_font_flags_t flags;

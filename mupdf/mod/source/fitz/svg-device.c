@@ -695,23 +695,19 @@ svg_dev_fill_text(fz_context *ctx, fz_device *dev, const fz_text *text, fz_matri
 	font *fnt;
 	fz_text_span *span;
 
-	if (sdev->text_as_text)
-	{
-		for (span = text->head; span; span = span->next)
+	for (span = text->head; span; span = span->next)
+		if (sdev->text_as_text || span->font->as_text)
 		{
 			fz_write_printf(ctx, out, "<text");
 			svg_dev_fill_color(ctx, sdev, colorspace, color, alpha, color_params);
 			svg_dev_text_span(ctx, sdev, ctm, span);
 		}
-	}
-	else
-	{
-		for (span = text->head; span; span = span->next)
+		else
 		{
+			fz_write_printf(ctx, out, "%s", span->font->name);
 			fnt = svg_dev_text_span_as_paths_defs(ctx, dev, span, ctm);
 			svg_dev_text_span_as_paths_fill(ctx, dev, span, ctm, colorspace, color, alpha, fnt, color_params);
 		}
-	}
 }
 
 static void
@@ -723,23 +719,18 @@ svg_dev_stroke_text(fz_context *ctx, fz_device *dev, const fz_text *text, const 
 	font *fnt;
 	fz_text_span *span;
 
-	if (sdev->text_as_text)
-	{
-		for (span = text->head; span; span = span->next)
+	for (span = text->head; span; span = span->next)
+		if (sdev->text_as_text || span->font->as_text)
 		{
 			fz_write_printf(ctx, out, "<text");
 			svg_dev_fill_color(ctx, sdev, colorspace, color, alpha, color_params);
 			svg_dev_text_span(ctx, sdev, ctm, span);
 		}
-	}
-	else
-	{
-		for (span = text->head; span; span = span->next)
+		else
 		{
 			fnt = svg_dev_text_span_as_paths_defs(ctx, dev, span, ctm);
 			svg_dev_text_span_as_paths_stroke(ctx, dev, span, stroke, ctm, colorspace, color, alpha, fnt, color_params);
 		}
-	}
 }
 
 static void
@@ -760,23 +751,21 @@ svg_dev_clip_text(fz_context *ctx, fz_device *dev, const fz_text *text, fz_matri
 	fz_write_printf(ctx, out, "<mask id=\"ma%d\" x=\"%g\" y=\"%g\" width=\"%g\" height=\"%g\"",
 			num, bounds.x0, bounds.y0, bounds.x1 - bounds.x0, bounds.y1 - bounds.y0);
 	fz_write_printf(ctx, out, " maskUnits=\"userSpaceOnUse\" maskContentUnits=\"userSpaceOnUse\">\n");
-	if (sdev->text_as_text)
-	{
-		for (span = text->head; span; span = span->next)
+
+	for (span = text->head; span; span = span->next)
+		if (sdev->text_as_text || span->font->as_text)
 		{
 			fz_write_printf(ctx, out, "<text");
 			svg_dev_fill_color(ctx, sdev, fz_device_rgb(ctx), white, 1, fz_default_color_params);
 			svg_dev_text_span(ctx, sdev, ctm, span);
 		}
-	}
-	else
-	{
-		for (span = text->head; span; span = span->next)
+		else
 		{
 			fnt = svg_dev_text_span_as_paths_defs(ctx, dev, span, ctm);
 			svg_dev_text_span_as_paths_fill(ctx, dev, span, ctm, fz_device_rgb(ctx), white, 1.0f, fnt, fz_default_color_params);
+
 		}
-	}
+
 	fz_write_printf(ctx, out, "</mask>\n");
 	out = end_def(ctx, sdev);
 	fz_write_printf(ctx, out, "<g mask=\"url(#ma%d)\">\n", num);
@@ -800,24 +789,21 @@ svg_dev_clip_stroke_text(fz_context *ctx, fz_device *dev, const fz_text *text, c
 	fz_write_printf(ctx, out, "<mask id=\"ma%d\" x=\"%g\" y=\"%g\" width=\"%g\" height=\"%g\"",
 		num, bounds.x0, bounds.y0, bounds.x1 - bounds.x0, bounds.y1 - bounds.y0);
 	fz_write_printf(ctx, out, " maskUnits=\"userSpaceOnUse\" maskContentUnits=\"userSpaceOnUse\">\n");
-	if (sdev->text_as_text)
-	{
-		for (span = text->head; span; span = span->next)
+	
+	for (span = text->head; span; span = span->next)
+		if (sdev->text_as_text || span->font->as_text)
 		{
 			fz_write_printf(ctx, out, "<text");
 			svg_dev_stroke_state(ctx, sdev, stroke, fz_identity);
 			svg_dev_stroke_color(ctx, sdev, fz_device_rgb(ctx), white, 1, fz_default_color_params);
 			svg_dev_text_span(ctx, sdev, ctm, span);
 		}
-	}
-	else
-	{
-		for (span = text->head; span; span = span->next)
+		else
 		{
 			fnt = svg_dev_text_span_as_paths_defs(ctx, dev, span, ctm);
 			svg_dev_text_span_as_paths_stroke(ctx, dev, span, stroke, ctm, fz_device_rgb(ctx), white, 1.0f, fnt, fz_default_color_params);
 		}
-	}
+	
 	fz_write_printf(ctx, out, "</mask>\n");
 	out = end_def(ctx, sdev);
 	fz_write_printf(ctx, out, "<g mask=\"url(#ma%d)\">\n", num);

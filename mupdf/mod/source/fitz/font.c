@@ -33,6 +33,7 @@
 #include "hb-ft.h"
 
 #include <assert.h>
+#include <string.h>
 
 #include FT_FREETYPE_H
 #include FT_ADVANCES_H
@@ -91,6 +92,11 @@ int ft_name_index(void *face, const char *name)
 
 static void fz_drop_freetype(fz_context *ctx);
 
+#define FONT_LIBRARY_LEN 1
+char BundledFont[FONT_LIBRARY_LEN][32] = {
+	"NimbusRomNo9L",
+};
+
 static fz_font *
 fz_new_font(fz_context *ctx, const char *name, int use_glyph_bbox, int glyph_count)
 {
@@ -98,10 +104,27 @@ fz_new_font(fz_context *ctx, const char *name, int use_glyph_bbox, int glyph_cou
 
 	font = fz_malloc_struct(ctx, fz_font);
 	font->refs = 1;
+	font->as_text = 0;
+	if (name){
+		char buf[32]; 
+		int size=32;
+		char *p;
 
-	if (name)
 		fz_strlcpy(font->name, name, sizeof font->name);
-	else
+		
+		/* Remove "ABCDEF+" prefix and "-Bold" suffix. */
+		p = strchr(name, '+');
+		if (p) fz_strlcpy(buf, p+1, size);
+		else fz_strlcpy(buf, name, size);
+		p = strrchr(buf, '-');
+		if (p) *p = 0;
+
+		for(int i=0;i<FONT_LIBRARY_LEN;i++)
+			if(strlen(BundledFont[i])<=strlen(buf) && strncmp(BundledFont[i],buf, strlen(BundledFont[i]))==0) {
+				font->as_text=1;
+				break;
+			}
+	}else
 		fz_strlcpy(font->name, "(null)", sizeof font->name);
 
 	font->ft_face = NULL;
