@@ -1,5 +1,5 @@
 import { PageRange, ViewRectangle } from "../helper/viewport";
-import { IDocPages } from "./pdf/interface";
+import { IDocPages } from "./interface";
 
 export interface IILayout{
 }

@@ -1,12 +1,8 @@
-import { CacheMap } from "../../helper/cache";
-import { ILayout } from "../../backend/layout";
-import { IBackend, IDocPages, IDocRender } from "../../backend/pdf/interface";
-import {
-  evTransformer,
-  getCurVPBox,
-  getEarlyVPBox
-} from "../../helper/viewport";
-import { PageRange } from "../../helper/viewport";
+import { CacheMap } from "../helper/cache";
+import { ILayout } from "../pdf/layout";
+import { IBackend, IDocPages, IDocRender } from "../pdf/interface";
+import {evTransformer,getCurVPBox,getEarlyVPBox} from "../helper/viewport";
+import { PageRange } from "../helper/viewport";
 
 const IMAGE_CAPACITY = 12;
 
@@ -16,12 +12,12 @@ export interface IPageImage {
   pn: number;
 }
 
-export abstract class DocViewer<X extends IPageImage> {
+export class DocViewer {
   doc_page: IDocPages;
   doc_render: IDocRender;
   viewer_layout: ILayout;
   viewer_div = document.createElement("div");
-  viewer_pages = new CacheMap<number, X>();
+  viewer_pages = new CacheMap<number, IPageImage>();
 
   async init(doc: IBackend, layout: ILayout) {
     this.viewer_layout = layout;
@@ -55,7 +51,11 @@ export abstract class DocViewer<X extends IPageImage> {
    * Insert an empty page to the viewer
    */
   pageAdd(pn: number) {
-    const info = this.pageInit(pn);
+    const info = {
+      img: document.createElement("div"),
+      div: document.createElement("div"),
+      pn: pn
+    }
     const img = info.img;
     const div = info.div;
     this.viewer_pages.set(pn, info);
@@ -68,7 +68,7 @@ export abstract class DocViewer<X extends IPageImage> {
   /**
    * Remove a page from the viewer
    */
-  pageRemove(info: X) {
+  pageRemove(info: IPageImage) {
     const { div, img } = info;
     console.log(`Removing ${info.pn}`);
     this.viewer_div.removeChild(div);
@@ -76,12 +76,12 @@ export abstract class DocViewer<X extends IPageImage> {
     img.className="";
   }
 
-  abstract pageInit(pn: number): X
-
   /**
    * Rerender *page* at scale *ratio*
    */
-  abstract pageImgUpdate(page: X, priority: number): Promise<void>;
+  async pageDraw(page: IPageImage, priority: number){
+    page.img.innerHTML = await this.doc_render.renderSVG(page.pn, -1);
+  }
 
   /**
    * Update the view **after scrolling finishes**
@@ -94,12 +94,9 @@ export abstract class DocViewer<X extends IPageImage> {
     for (var i = l; i <= r; i++) {
       if (!this.viewer_pages.has(i)) {
         const info = this.pageAdd(i);
-        await this.pageImgUpdate(info, 1);
+        await this.pageDraw(info, 1);
       }
     }
-    const cur_box = getCurVPBox();
-    const vp_range = this.viewer_layout.getPageRange(cur_box);
-    await this.viewUpdateCur(vp_range);
     this.viewer_pages.trim(
       IMAGE_CAPACITY,
       (x) => l <= x && x <= r,
@@ -121,22 +118,14 @@ export abstract class DocViewer<X extends IPageImage> {
       //add box if box does not exist
       if (!this.viewer_pages.has(i)) {
         const info = this.pageAdd(i);
-        await this.pageImgUpdate(info, 0);
+        await this.pageDraw(info, 0);
       }
     }
   }
 
-  /**
-   * Update the view **after zooming finishes**
-   * - Rerender visible (in viewport) pages if ratio mismatches
-   *
-   * **Very computation heavy**
-   */
-  async viewUpdateCur(vp: PageRange): Promise<void> {}
-
   onScrollIng() {
-      const box = this.viewer_layout.getPageRange(getCurVPBox());
-      this.viewUpdateUrgent(box);
+    const box = this.viewer_layout.getPageRange(getCurVPBox());
+    this.viewUpdateUrgent(box);
   }
 
   onScrollEnd() {
@@ -150,7 +139,5 @@ export abstract class DocViewer<X extends IPageImage> {
 
   onZoomEnd() {
     this.viewer_div.style.setProperty("--image-quality", "auto");
-    //const box = this.viewer_layout.getPageRange(getCurVPBox());
-    //this.viewUpdateCur(box);
   }
 }

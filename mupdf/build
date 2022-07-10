@@ -17,5 +17,5 @@ echo "Making"
 make
 
 echo "Copying"
-mv libmupdf.js ../web/src/backend/pdf/libmupdf.js
+mv libmupdf.js ../web/src/pdf/libmupdf.js
 mv libmupdf.wasm ../web/out/wasm/libmupdf.wasm
