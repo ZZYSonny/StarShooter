@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "fitz.h": "c",
+        "emscripten.h": "c"
+    }
+}

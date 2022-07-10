@@ -1,0 +1,6 @@
+web/node_modules
+web/out/esbuild
+mupdf/src
+mupdf/mupdf-*-source
+mupdf/libmupdf.*
+*.pdf
