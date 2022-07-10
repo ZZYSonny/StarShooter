@@ -1,36 +1,22 @@
+## Highlights
+- Touchpad scrolling and zooming are as smooth as normal webpages
+- Fast PDF generation using MuPDF compiled in WASM
+
 ## Plan
-- Renderer
-    - [ ] Write a custom MuPDF WASM wrapper.
-    - [ ] Improve text selection layer as in the official demo. The official demo seems to use `jsonText -> HTML` instead of directly using the `generateHTML`. https://mupdf.com/wasm/demo/view.html
-    - [ ] A Lazy PDF Renderer
-    - [ ] Fallback to PNG mode when the rendered SVG has a lot of PNGs (especially when font is embeded as PNG)
+- UI
     - [ ] Toolbar UI (toc, current number of page)
 - SVG Crop
-    - [x] Drag and release Implementation
-    - [x] Crop Page SVG by pressing PrtSc
-    - [ ] Minify SVG
+    - [ ] Use existing MuPDF functionality to generate cropped SVG 
     - [ ] Normalize SVG font size
     - [ ] Integration with VSCode
 - SVG Latex Formula Recongition
 - Extra Reference: https://mupdf.com/wasm/demo/view.html
 
-TMP
-```ts
-window.visualViewport.onresize = e => console.log(e)
-```
-
-## Renderer IDEAS
-- MuPDF PNG 
-    - Failed: MuPDF wasm only uses CPU rendering, too slow
-- MuPDF SVG: Text=Path
-    - Failed: Scrolling/Zooming with Large SVG is too sluggish
-- MuPDF SVG: Text=Text
-    - Pending WASM compile
-    - add this before `<g>` in pdf `<link xmlns="http://www.w3.org/1999/xhtml" rel="stylesheet" href="font.css" type="text/css"/>`
-- MuPDF SVG -> ImageBitmap -> Canvas
-    - Current Solution
-    - Known issue
-        - Firefox renders slowly (maybe asynchronous panning?)
-        - Need to move this part to a web worker, but createImageBitmap does not accept a svg blob yet
-
-- Bionic Reading https://bionic-reading.com/
+## Implementation Notes
+### How is a page rendered
+- Pass PDF to MuPDF
+- Render each page as a SVG picture
+    - The PDF reader bundles some fonts to improve SVG rendering performance and allow browsers to do hinting with the font. 
+        - If text is using a bundled font, it will be generated using `text_as_text` option in MuPDF. With this option, MuPDF generates the text as tspan in SVG, which is a lot more compat.
+        - If text is not using a bundled font, SVG generation will fallback to use `text_as_path` option. With this option, MuPDF will convert fonts bundled in the PDF as fonts usable in SVG (represented by path). Then each character in the text will be generated separately. 
+- Let browser handle the rendering of SVG pictures
