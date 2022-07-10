@@ -10,6 +10,7 @@ then
     mv mupdf-$VERSION-source src
     cp src/COPYING LICENSE
     cp src/COPYING ../web/out/wasm/libmupdf.LICENSE
+    cp -rT mod src
 fi
 
 echo "Making"
