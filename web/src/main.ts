@@ -1,9 +1,7 @@
-//import { MuChromeBackend } from "./backend/pdf/mu";
-//import { ILayout } from "./backend/layout";
 import { ILayout } from "./pdf/layout";
 import { MuBackend } from "./pdf/mupdf";
+import { DocViewerController } from "./viewer/control";
 import { ChoosePDF, ConstantPDF } from "./viewer/picker";
-import { DocViewer } from "./viewer/viewer";
 
 (async ()=>{
     const url = await ConstantPDF();
@@ -11,6 +9,6 @@ import { DocViewer } from "./viewer/viewer";
     await doc.init(url);
 
     const layout = new ILayout(25, doc.pageinfo);
-    const viewer = new DocViewer();
+    const viewer = new DocViewerController();
     viewer.init(doc,layout);
 })()

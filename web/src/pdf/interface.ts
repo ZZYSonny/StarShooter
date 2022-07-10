@@ -10,15 +10,12 @@ export interface IDocPages {
 }
 
 export interface IDocInteract {
-
+    getOutline: () => Promise<PDFOutlineObject>
 }
 
 export interface IDocRender {
     /**Render Page pn in PNG Format. Return ImageBitmap use in canvas */
-    renderSVG(pn: number, scale: number): Promise<string>
-
-    /**Render Page pn in PNG Format. Return ImageBitmap use in canvas */
-    //renderBMP(pn: number, scale: number): Promise<ImageBitmap>
+    renderSVG: (pn: number, scale: number) => Promise<string>
 }
 
 export interface IBackend{
@@ -26,4 +23,13 @@ export interface IBackend{
 
     pageinfo: IDocPages
     renderer: IDocRender
+    interact: IDocInteract
+}
+
+export interface PDFOutlineObject{
+    title: string
+    page: number
+    x: number
+    y: number
+    children?: PDFOutlineObject[]
 }

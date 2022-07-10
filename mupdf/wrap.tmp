@@ -1,0 +1,112 @@
+EMSCRIPTEN_KEEPALIVE
+char *pageLinks(int number)
+{
+	static unsigned char *data = NULL;
+	fz_buffer *buf = NULL;
+	fz_link *links = NULL;
+	fz_link *link;
+
+	fz_var(buf);
+	fz_var(links);
+
+	fz_free(ctx, data);
+	data = NULL;
+
+	fz_try(ctx)
+	{
+		loadPage(number);
+
+		links = fz_load_links(ctx, lastPage);
+
+		buf = fz_new_buffer(ctx, 0);
+
+		fz_append_string(ctx, buf, "[");
+		for (link = links; link; link = link->next)
+		{
+			fz_irect bbox = fz_round_rect(fz_transform_rect(link->rect, fz_scale(dpi / 72, dpi / 72)));
+			fz_append_string(ctx, buf, "{");
+			fz_append_printf(ctx, buf, "%q:%d,", "x", bbox.x0);
+			fz_append_printf(ctx, buf, "%q:%d,", "y", bbox.y0);
+			fz_append_printf(ctx, buf, "%q:%d,", "w", bbox.x1 - bbox.x0);
+			fz_append_printf(ctx, buf, "%q:%d,", "h", bbox.y1 - bbox.y0);
+			if (fz_is_external_link(ctx, link->uri))
+			{
+				fz_append_printf(ctx, buf, "%q:%q", "href", link->uri);
+			}
+			else
+			{
+				fz_location link_loc = fz_resolve_link(ctx, doc, link->uri, NULL, NULL);
+				int link_page = fz_page_number_from_location(ctx, doc, link_loc);
+				fz_append_printf(ctx, buf, "%q:\"#page%d\"", "href", link_page + 1);
+			}
+			fz_append_string(ctx, buf, "}");
+			if (link->next)
+				fz_append_string(ctx, buf, ",");
+		}
+		fz_append_string(ctx, buf, "]");
+		fz_terminate_buffer(ctx, buf);
+
+		fz_buffer_extract(ctx, buf, &data);
+	}
+	fz_always(ctx)
+	{
+		fz_drop_buffer(ctx, buf);
+		fz_drop_link(ctx, links);
+	}
+	fz_catch(ctx)
+	{
+		wasm_rethrow(ctx);
+	}
+
+	return (char *)data;
+}
+
+EMSCRIPTEN_KEEPALIVE
+char *search(int number, const char *needle)
+{
+	static unsigned char *data = NULL;
+	fz_buffer *buf = NULL;
+	fz_quad hits[500];
+	int i, n;
+
+	fz_var(buf);
+
+	fz_free(ctx, data);
+	data = NULL;
+
+	fz_try(ctx)
+	{
+		loadPage(number);
+
+		n = fz_search_page(ctx, lastPage, needle, NULL, hits, nelem(hits));
+
+		buf = fz_new_buffer(ctx, 0);
+
+		fz_append_string(ctx, buf, "[");
+		for (i = 0; i < n; ++i)
+		{
+			fz_rect rect = fz_rect_from_quad(hits[i]);
+			fz_irect bbox = fz_round_rect(fz_transform_rect(rect, fz_scale(dpi / 72, dpi / 72)));
+			if (i > 0)
+				fz_append_string(ctx, buf, ",");
+			fz_append_printf(ctx, buf, "{%q:%d,", "x", bbox.x0);
+			fz_append_printf(ctx, buf, "%q:%d,", "y", bbox.y0);
+			fz_append_printf(ctx, buf, "%q:%d,", "w", bbox.x1 - bbox.x0);
+			fz_append_printf(ctx, buf, "%q:%d}", "h", bbox.y1 - bbox.y0);
+		}
+		fz_append_string(ctx, buf, "]");
+		fz_terminate_buffer(ctx, buf);
+
+		fz_buffer_extract(ctx, buf, &data);
+	}
+	fz_always(ctx)
+	{
+		fz_drop_buffer(ctx, buf);
+	}
+	fz_catch(ctx)
+	{
+		wasm_rethrow(ctx);
+	}
+
+	return (char *)data;
+}

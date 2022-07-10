@@ -36,15 +36,10 @@ export class DocViewer {
       null,
       () => this.onScrollEnd()
     );
-    const cb_zoom = evTransformer("zoom", 80,
-      () => this.onZoomStart(),
-      () => this.onZoomEnd()
-    );
     window.addEventListener("scroll", cb_scroll1);
     window.addEventListener("scroll", cb_scroll2);
     visualViewport.addEventListener("scroll", cb_scroll1);
     visualViewport.addEventListener("scroll", cb_scroll2);
-    visualViewport.addEventListener("resize", cb_zoom);
   }
 
   /**
@@ -131,13 +126,5 @@ export class DocViewer {
   onScrollEnd() {
     const box = this.viewer_layout.getPageRange(getEarlyVPBox(3));
     this.viewUpdateEarly(box);
-  }
-
-  onZoomStart() {
-    this.viewer_div.style.setProperty("--image-quality", "pixelated");
-  }
-
-  onZoomEnd() {
-    this.viewer_div.style.setProperty("--image-quality", "auto");
   }
 }

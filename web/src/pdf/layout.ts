@@ -51,4 +51,11 @@ export class ILayout implements IILayout{
         img.style.width=`${this.doc.page_width[pn]}px`
         img.style.height=`${this.doc.page_height[pn]}px`
     }
+
+    scrollTo(pn:number, x:number, y:number){
+        window.scrollTo({
+            left: 0,
+            top: this.page_y0[pn+1]+y
+        })
+    }
 }

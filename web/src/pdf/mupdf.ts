@@ -1,6 +1,5 @@
-import { IBackend, IDocPages, IDocRender } from "./interface";
+import { IBackend, IDocInteract, IDocPages, IDocRender } from "./interface";
 import Module from './libmupdf'
-const DPI = 96;
 
 interface MuPdfModule extends EmscriptenModule {
     ccall: typeof ccall;
@@ -22,6 +21,8 @@ export class MuWrapper {
         (pn: number) => number;
     protected mu_pageHeight:
         (pn: number) => number;
+    protected mu_loadOutline: 
+        () => string;
     protected mu_drawPageAsSVG: (pn: number, text_as_text: number) => string
     //protected mu_pageLinks:
     //    (arg_0: number, arg_1: number, arg_2: number) => string;
@@ -35,6 +36,7 @@ export class MuWrapper {
         this.mu_countPages = module.cwrap("countPages", "number", []);
         this.mu_pageWidth = module.cwrap("pageWidth", "number", ["number"]);
         this.mu_pageHeight = module.cwrap("pageHeight", "number", ["number"]);
+        this.mu_loadOutline = module.cwrap("loadOutline", "string", []);
         //this.mu_pageLinks = module.cwrap("pageLinks", "string", ["number", "number", "number"]);
         this.mu_drawPageAsSVG = module.cwrap("drawPageAsSVG", "string", ["number", "number"]);
         console.log("--Mu: Module Loaded")
@@ -45,6 +47,7 @@ export class MuWrapper {
 export class MuBackend extends MuWrapper implements IBackend {
     pageinfo: IDocPages;
     renderer: IDocRender;
+    interact: IDocInteract;
 
     async init(url: string): Promise<void> {
         await this.loadModule()
@@ -59,6 +62,7 @@ export class MuBackend extends MuWrapper implements IBackend {
 
         this.initPages()
         this.initRenderer()
+        this.initInteract();
         console.log("--Mu: Component Loaded")
     }
 
@@ -78,6 +82,8 @@ export class MuBackend extends MuWrapper implements IBackend {
             page_width: widths,
             page_height: heights
         }
+        console.log(this.mu_loadOutline())
+        console.log(1);
     }
 
     initRenderer() {
@@ -90,11 +96,23 @@ export class MuBackend extends MuWrapper implements IBackend {
                     .replaceAll('"url(#ma',`"url(#ma_${pn}_`)
                     .replaceAll('<clipPath id="cp',`<clipPath id="cp_${pn}_`)
                     .replaceAll('"url(#cp',`"url(#cp_${pn}_`)
-                    //.replaceAll('&#xfffd;', '')
                 //download(`${pn}.svg`, svg_str)
                 return svg_str;
-                //const blob = new Blob([svg_str], { type: 'image/svg+xml' })
-                //return blob;
+            }
+        }
+    }
+
+    initInteract() {
+        this.interact = {
+            getOutline: async () => {
+                console.log(this.mu_loadOutline());
+                return {
+                    title: this.pageinfo.doc_title,
+                    page: 0,
+                    x: 0,
+                    y: 0,
+                    children: JSON.parse(this.mu_loadOutline())
+                }
             }
         }
     }

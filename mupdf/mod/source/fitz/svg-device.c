@@ -1344,7 +1344,7 @@ fz_device *fz_new_svg_device_with_id(fz_context *ctx, fz_output *out, float page
 	fz_write_printf(ctx, out, "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
 	fz_write_printf(ctx, out, "<svg xmlns=\"http://www.w3.org/2000/svg\" "
 		"xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\" "
-		"width=\"%gpt\" height=\"%gpt\" viewBox=\"0 0 %g %g\">\n",
+		"width=\"%gpx\" height=\"%gpx\" viewBox=\"0 0 %g %g\">\n",
 		page_width, page_height, page_width, page_height);
 	fz_write_printf(ctx, out, "<g enable-background=\"new\">\n");
 
