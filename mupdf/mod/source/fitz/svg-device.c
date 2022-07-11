@@ -704,7 +704,6 @@ svg_dev_fill_text(fz_context *ctx, fz_device *dev, const fz_text *text, fz_matri
 		}
 		else
 		{
-			fz_write_printf(ctx, out, "%s", span->font->name);
 			fnt = svg_dev_text_span_as_paths_defs(ctx, dev, span, ctm);
 			svg_dev_text_span_as_paths_fill(ctx, dev, span, ctm, colorspace, color, alpha, fnt, color_params);
 		}
