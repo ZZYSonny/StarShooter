@@ -28,7 +28,7 @@ void initContext(void)
 }
 
 EMSCRIPTEN_KEEPALIVE
-void openDocumentFromBuffer(unsigned char *data, int size, char *magic)
+void openDocumentFromBuffer(unsigned char *data, int size)
 {
 	fz_buffer *buf = NULL;
 	fz_stream *stm = NULL;
@@ -39,7 +39,7 @@ void openDocumentFromBuffer(unsigned char *data, int size, char *magic)
 	{
 		buf = fz_new_buffer_from_data(ctx, data, size);
 		stm = fz_open_buffer(ctx, buf);
-		doc = fz_open_document_with_stream(ctx, magic, stm);
+		doc = fz_open_document_with_stream(ctx, "application/pdf", stm);
 	}
 	fz_always(ctx)
 	{

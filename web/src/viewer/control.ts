@@ -28,7 +28,7 @@ export class DocViewerController extends DocViewer{
   doc_interact: IDocInteract;
 
   async init(doc: IBackend, layout: ILayout): Promise<void> {
-    super.init(doc, layout);
+    await super.init(doc, layout);
     this.doc_interact = doc.interact;
     const outline = await this.doc_interact.getOutline();
     const outlinehtml = outlineToHTML(outline, this.viewer_layout);

@@ -7,10 +7,12 @@ interface MuPdfModule extends EmscriptenModule {
 }
 
 export class MuWrapper {
+    protected mu_module: 
+        MuPdfModule;
     protected mu_doc:
         number;
     protected mu_openDocumentFromBuffer:
-        (data: Uint8Array, size: number, magic: string) => void
+        (data: number, size: number) => void
     protected mu_initContext:
         () => void
     protected mu_documentTitle:
@@ -29,16 +31,16 @@ export class MuWrapper {
 
     protected async loadModule() {
         //initialize mupdf module
-        const module: MuPdfModule = await Module()
-        this.mu_initContext = module.cwrap("initContext", null, [])
-        this.mu_openDocumentFromBuffer = module.cwrap('openDocumentFromBuffer', null, ['array', 'number', 'string']);
-        this.mu_documentTitle = module.cwrap("documentTitle", "string", []);
-        this.mu_countPages = module.cwrap("countPages", "number", []);
-        this.mu_pageWidth = module.cwrap("pageWidth", "number", ["number"]);
-        this.mu_pageHeight = module.cwrap("pageHeight", "number", ["number"]);
-        this.mu_loadOutline = module.cwrap("loadOutline", "string", []);
-        //this.mu_pageLinks = module.cwrap("pageLinks", "string", ["number", "number", "number"]);
-        this.mu_drawPageAsSVG = module.cwrap("drawPageAsSVG", "string", ["number", "number"]);
+        this.mu_module = await Module()
+        this.mu_initContext = this.mu_module.cwrap("initContext", null, [])
+        this.mu_openDocumentFromBuffer = this.mu_module.cwrap('openDocumentFromBuffer', null, ['number', 'number']);
+        this.mu_documentTitle = this.mu_module.cwrap("documentTitle", "string", []);
+        this.mu_countPages = this.mu_module.cwrap("countPages", "number", []);
+        this.mu_pageWidth = this.mu_module.cwrap("pageWidth", "number", ["number"]);
+        this.mu_pageHeight = this.mu_module.cwrap("pageHeight", "number", ["number"]);
+        this.mu_loadOutline = this.mu_module.cwrap("loadOutline", "string", []);
+        //this.mu_pageLinks = this.mu_module.cwrap("pageLinks", "string", ["number", "number", "number"]);
+        this.mu_drawPageAsSVG = this.mu_module.cwrap("drawPageAsSVG", "string", ["number", "number"]);
         console.log("--Mu: Module Loaded")
     }
 }
@@ -56,8 +58,11 @@ export class MuBackend extends MuWrapper implements IBackend {
         const data = await file.arrayBuffer()
         const src = new Uint8Array(data);
 
+        const ptr = this.mu_module._malloc(src.byteLength);
+        this.mu_module.HEAPU8.set(src, ptr);
+    
         this.mu_initContext();
-        this.mu_openDocumentFromBuffer(src, src.length, "1.pdf");
+        this.mu_openDocumentFromBuffer(ptr, src.byteLength);
         console.log("--Mu: Document Loaded")
 
         this.initPages()
@@ -82,8 +87,6 @@ export class MuBackend extends MuWrapper implements IBackend {
             page_width: widths,
             page_height: heights
         }
-        console.log(this.mu_loadOutline())
-        console.log(1);
     }
 
     initRenderer() {
