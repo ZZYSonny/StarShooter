@@ -43,3 +43,11 @@ export function evTransformer(
     }
   };
 }
+
+export function scrollVPto(options: ScrollToOptions){
+  window.scrollTo({
+    behavior: options?.behavior,
+    left: options?.left-window.visualViewport.offsetLeft,
+    top:  options?.top-window.visualViewport.offsetTop
+  })
+}

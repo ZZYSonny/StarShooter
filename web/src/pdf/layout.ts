@@ -1,4 +1,4 @@
-import { PageRange, ViewRectangle } from "../helper/viewport";
+import { PageRange, scrollVPto, ViewRectangle } from "../helper/viewport";
 import { IDocPages } from "./interface";
 
 export interface IILayout{
@@ -53,8 +53,8 @@ export class ILayout implements IILayout{
     }
 
     scrollTo(pn:number, x:number, y:number){
-        window.scrollTo({
-            left: 0,
+        scrollVPto({
+            left: x,
             top: this.page_y0[pn+1]+y
         })
     }
