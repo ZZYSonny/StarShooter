@@ -48,7 +48,7 @@ export class MuBackend extends MuWrapper implements IBackend {
     renderer: IDocRender;
     interact: IDocInteract;
 
-    async init(url: string): Promise<void> {
+    async init(url: string, name: string): Promise<void> {
         await this.loadModule()
 
         const file = await fetch(url);
@@ -60,16 +60,18 @@ export class MuBackend extends MuWrapper implements IBackend {
         this.mu_openDocumentFromBuffer(ptr, src.byteLength);
         console.log("--Mu: Document Loaded")
 
-        this.initPages()
+        this.initPages(name)
         this.initRenderer()
         this.initInteract();
         console.log("--Mu: Component Loaded")
     }
 
-    initPages() {
+    initPages(name:string) {
         const n = this.mu_countPages();
         const widths = new Uint32Array(n + 1);
         const heights = new Uint32Array(n + 1);
+        var title = this.mu_documentTitle();
+        if(title=="") title=name;
         for (var i = 1; i <= n; i++) {
             const w = this.mu_pageWidth(i);
             const h = this.mu_pageHeight(i);
@@ -77,7 +79,7 @@ export class MuBackend extends MuWrapper implements IBackend {
             heights[i] = h;
         }
         this.pageinfo = {
-            doc_title: this.mu_documentTitle(),
+            doc_title: title,
             doc_pages: n,
             page_width: widths,
             page_height: heights
@@ -103,7 +105,6 @@ export class MuBackend extends MuWrapper implements IBackend {
     initInteract() {
         this.interact = {
             getOutline: async () => {
-                console.log(this.mu_loadOutline());
                 return {
                     title: this.pageinfo.doc_title,
                     page: 0,

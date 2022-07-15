@@ -19,7 +19,7 @@ export interface IDocRender {
 }
 
 export interface IBackend{
-    init(url: string): Promise<void>
+    init(url: string, name: string): Promise<void>
 
     pageinfo: IDocPages
     renderer: IDocRender
