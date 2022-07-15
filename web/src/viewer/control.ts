@@ -1,4 +1,4 @@
-import { getCurVPBox } from "src/helper/viewport";
+import { getCurVPBox } from "../helper/viewport";
 import { IBackend, IDocInteract, PDFOutlineObject } from "../pdf/interface";
 import { ILayout } from "../pdf/layout";
 import { DocViewer } from "./viewer";

@@ -13,8 +13,6 @@ export class MuWrapper {
         number;
     protected mu_openDocumentFromBuffer:
         (data: number, size: number) => void
-    protected mu_initContext:
-        () => void
     protected mu_documentTitle:
         () => string;
     protected mu_countPages:
@@ -32,7 +30,6 @@ export class MuWrapper {
     protected async loadModule() {
         //initialize mupdf module
         this.mu_module = await Module()
-        this.mu_initContext = this.mu_module.cwrap("initContext", null, [])
         this.mu_openDocumentFromBuffer = this.mu_module.cwrap('openDocumentFromBuffer', null, ['number', 'number']);
         this.mu_documentTitle = this.mu_module.cwrap("documentTitle", "string", []);
         this.mu_countPages = this.mu_module.cwrap("countPages", "number", []);
@@ -60,8 +57,6 @@ export class MuBackend extends MuWrapper implements IBackend {
 
         const ptr = this.mu_module._malloc(src.byteLength);
         this.mu_module.HEAPU8.set(src, ptr);
-    
-        this.mu_initContext();
         this.mu_openDocumentFromBuffer(ptr, src.byteLength);
         console.log("--Mu: Document Loaded")
 

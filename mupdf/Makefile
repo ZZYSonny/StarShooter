@@ -18,7 +18,7 @@ MUPDF_WASM := libmupdf.wasm
 all: $(MUPDF_JS)
 
 MUPDF_CORE := $(BUILD_DIR)/libmupdf.a $(BUILD_DIR)/libmupdf-third.a
-$(MUPDF_CORE): .FORCE
+$(MUPDF_CORE): #.FORCE
 	$(MAKE) -j4 -C $(MUPDF_SRC) generate
 	$(MAKE) -j4 -C $(MUPDF_SRC) \
 		OS=wasm build=$(build) \

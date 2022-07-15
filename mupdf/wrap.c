@@ -10,21 +10,22 @@ static fz_context *ctx;
 static fz_document *doc;
 static fz_page *lastPage = NULL;
 
+EMSCRIPTEN_KEEPALIVE
+int main()
+{
+	ctx = fz_new_context(NULL, NULL, 100 << 20);
+	if (!ctx)
+		EM_ASM({ throw new Error("Cannot create MuPDF context!"); });
+	fz_register_document_handlers(ctx);
+	return 0;
+}
+
 void wasm_rethrow(fz_context *ctx)
 {
 	if (fz_caught(ctx) == FZ_ERROR_TRYLATER)
 		EM_ASM({ throw "trylater"; });
 	else
 		EM_ASM({ throw new Error(UTF8ToString($0)); }, fz_caught_message(ctx));
-}
-
-EMSCRIPTEN_KEEPALIVE
-void initContext(void)
-{
-	ctx = fz_new_context(NULL, NULL, 100 << 20);
-	if (!ctx)
-		EM_ASM({ throw new Error("Cannot create MuPDF context!"); });
-	fz_register_document_handlers(ctx);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -116,7 +117,8 @@ char *drawPageAsSVG(int number, int style)
 		fz_close_output(ctx, out);
 		fz_drop_output(ctx, out);
 	}
-	fz_buffer_extract(ctx, buf, &data);
+	int len = fz_buffer_extract(ctx, buf, &data);
+	data[len] = 0;
 	fz_drop_buffer(ctx, buf);
 
 	return (char *)data;
