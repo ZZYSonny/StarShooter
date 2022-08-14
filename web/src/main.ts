@@ -3,6 +3,10 @@ import { MuBackend } from "./pdf/mupdf";
 import { DocViewerController } from "./viewer/control";
 import { ChoosePDF, ConstantPDF } from "./viewer/picker";
 
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/js/sw.js')
+}
+
 (async ()=>{
     const [url, name] = await ConstantPDF();
     const doc = new MuBackend();
