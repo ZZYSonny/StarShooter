@@ -6,7 +6,7 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
-    "dev": "esbuild --target=es2022 src/main.ts src/sw.ts --servedir=out --outdir=out/js --bundle --sourcemap --external:fs --external:path",
-    "build": "esbuild src/main.ts src/sw.ts --outdir=out/js --bundle --external:fs --external:path --minify"
+    "dev": "esbuild --target=es2022 src/main.ts --servedir=out --outdir=out/js --bundle --sourcemap --external:fs --external:path",
+    "build": "esbuild src/main.ts --outdir=out/js --bundle --external:fs --external:path --minify"
   }
 }
