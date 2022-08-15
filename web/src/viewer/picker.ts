@@ -19,6 +19,6 @@ export function ChoosePDF():Promise<[string, string]>{
 
 export async function ConstantPDF():Promise<[string, string]>{
     if(!window.location.href.startsWith("http://localhost")) return ChoosePDF();
-    const URL = "sample1.pdf";
+    const URL = "http://localhost:8000/sample1.pdf";
     return [URL, URL];
 }

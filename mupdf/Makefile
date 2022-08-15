@@ -9,6 +9,7 @@ BUILD_FLAGS := \
 	-s ABORTING_MALLOC=0 \
 	-s TOTAL_MEMORY=512MB \
 	-s ALLOW_MEMORY_GROWTH=1 \
+	-s ENVIRONMENT=worker \
 	-s EXPORT_ES6=1 \
 	-s MODULARIZE=1
 BUILD_DIR := $(MUPDF_SRC)/build/wasm/$(build)
