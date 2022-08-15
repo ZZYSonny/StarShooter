@@ -1,12 +1,17 @@
 import registerPromiseWorker from 'promise-worker/register';
 import Module from './pdf/libmupdf'
 
-const mu_module_promise = Module();
+interface MuPdfModule extends EmscriptenModule {
+  ccall: typeof ccall;
+  cwrap: typeof cwrap;
+}
+
+const mu_module_promise:Promise<MuPdfModule> = Module();
 const mu_module_functions = mu_module_promise.then(mu_module => {
   const openDocumentFromBuffer = mu_module.cwrap('openDocumentFromBuffer', null, ['number', 'number'])
   const drawPageAsSVG = mu_module.cwrap("drawPageAsSVG", "string", ["number", "number"])
 
-  return new Map([
+  return new Map<string,any>([
     ["openDocumentFromBuffer", async (url: string) => {
       const file = await fetch(url);
       const data = await file.arrayBuffer();

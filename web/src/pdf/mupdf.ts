@@ -1,17 +1,9 @@
 // main.js
 import PromiseWorker from 'promise-worker';
 import { IBackend, IDocInteract, IDocPages, IDocRender } from "./interface";
-import Module from './libmupdf'
-
-interface MuPdfModule extends EmscriptenModule {
-    ccall: typeof ccall;
-    cwrap: typeof cwrap;
-}
 
 export class MuWrapper {
     protected mu_worker: PromiseWorker
-    protected mu_module: 
-        MuPdfModule;
     protected mu_openDocumentFromBuffer = (url:string) =>
         this.mu_worker.postMessage(["openDocumentFromBuffer", [url]]) as Promise<void>;
     protected mu_documentTitle = () =>
