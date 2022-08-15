@@ -10,7 +10,7 @@
     ],
     "start_url": ".",
     "scope": ".",
-    "display": "standalone",
+    "display": "browser",
     "file_handlers": [
         {
             "action": ".",
