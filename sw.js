@@ -1,1 +1,1 @@
-(()=>{})();
+(()=>{var c=async e=>{await(await caches.open("v1")).addAll(e)};self.addEventListener("install",e=>{e.waitUntil(c([]))});var t=async e=>{let a=await caches.match(e);return a||fetch(e)};self.addEventListener("fetch",e=>{e.respondWith(t(e.request))});})();

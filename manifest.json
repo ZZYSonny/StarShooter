@@ -13,7 +13,7 @@
     "display": "standalone",
     "file_handlers": [
         {
-            "action": "/open-csv",
+            "action": "/",
             "accept": {
                 "application/pdf": [
                     ".pdf"
