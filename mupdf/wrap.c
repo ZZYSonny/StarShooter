@@ -38,7 +38,6 @@ char* buffer_to_string(fz_context *ctx, fz_buffer *buf){
 	data = NULL;
 	fz_append_printf(ctx, buf, "%c", 0);
 	int len = fz_buffer_extract(ctx, buf, &data);
-	//data[len] = 0;
 	fz_drop_buffer(ctx, buf);
 	return (char*)data;
 }
@@ -70,20 +69,6 @@ void openDocumentFromBuffer(unsigned char *data, int size)
 	return;
 }
 
-EMSCRIPTEN_KEEPALIVE
-int countPages()
-{
-	int n = 1;
-	fz_try(ctx)
-	{
-		n = pdf_count_pages(ctx, doc);
-	}
-	fz_catch(ctx)
-	{
-		wasm_rethrow(ctx);
-	}
-	return n;
-}
 
 static void loadPage(int number)
 {
@@ -117,7 +102,7 @@ char *drawPageAsSVG(int number, int style)
 	bbox = pdf_bound_page(ctx, lastPage);
 	dev = fz_new_svg_device(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, style, 0);
 	pdf_run_page(ctx, lastPage, dev, fz_identity, NULL);
-	
+
 	fz_close_device(ctx, dev);
 	fz_drop_device(ctx, dev);
 	fz_write_byte(ctx, out, 0);
@@ -139,33 +124,26 @@ static fz_irect pageBounds(int number)
 	return bbox;
 }
 
-EMSCRIPTEN_KEEPALIVE
-int pageWidth(int number)
-{
-	fz_irect bbox = fz_empty_irect;
-	fz_try(ctx)
-	{
-		loadPage(number);
-		bbox = pageBounds(number);
-	}
-	fz_catch(ctx)
-		wasm_rethrow(ctx);
-	return bbox.x1 - bbox.x0;
-}
 
 EMSCRIPTEN_KEEPALIVE
-int pageHeight(int number)
+char* pageWeightHeight()
 {
+	fz_buffer *buf = fz_new_buffer(ctx, 0);
 	fz_irect bbox = fz_empty_irect;
-	fz_try(ctx)
-	{
-		loadPage(number);
-		bbox = pageBounds(number);
+	int n = pdf_count_pages(ctx, doc);
+	fz_append_printf(ctx, buf, "[");
+	for(int i=1;i<=n;i++){
+		loadPage(i);
+		bbox = pageBounds(i);
+		fz_append_printf(ctx, buf, "%d,", bbox.x1 - bbox.x0);
+		fz_append_printf(ctx, buf, "%d", bbox.y1 - bbox.y0);
+		if(i!=n) fz_append_printf(ctx, buf, ",");
 	}
-	fz_catch(ctx)
-		wasm_rethrow(ctx);
-	return bbox.y1 - bbox.y0;
+	fz_append_printf(ctx, buf, "]");
+
+	return buffer_to_string(ctx, buf);
 }
+
 
 EMSCRIPTEN_KEEPALIVE
 char *documentTitle()
@@ -207,12 +185,9 @@ void outlineToJSON(fz_buffer *buf, fz_outline *outline){
 EMSCRIPTEN_KEEPALIVE
 char *loadOutline()
 {
-	fz_outline *outline = NULL;
-	fz_buffer *buf = NULL;
+	fz_outline *outline = pdf_load_outline(ctx, doc);
+	fz_buffer *buf = fz_new_buffer(ctx, 0);
 	
-	outline = pdf_load_outline(ctx, doc);
-	buf = fz_new_buffer(ctx, 0);
-
 	outlineToJSONArray(buf, outline);
 
 	fz_drop_outline(ctx, outline);

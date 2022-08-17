@@ -10,6 +10,7 @@ const mu_module_promise:Promise<MuPdfModule> = Module();
 const mu_module_functions = mu_module_promise.then(mu_module => {
   const openDocumentFromBuffer = mu_module.cwrap('openDocumentFromBuffer', null, ['number', 'number'])
   const drawPageAsSVG = mu_module.cwrap("drawPageAsSVG", "string", ["number", "number"])
+  const pageWeightHeight = mu_module.cwrap("pageWeightHeight", "string", []);
 
   return new Map<string,any>([
     ["openDocumentFromBuffer", async (url: string) => {
@@ -30,7 +31,17 @@ const mu_module_functions = mu_module_promise.then(mu_module => {
         .replaceAll('"url(#cp',`"url(#cp_${pn}_`);
     }],
     ["documentTitle",mu_module.cwrap("documentTitle", "string", [])],
-    ["countPages", mu_module.cwrap("countPages", "number", [])],
+    ["pageWeightHeight", () => {
+      const weightHeight = JSON.parse(pageWeightHeight());
+      const n = weightHeight.length >> 1;
+      const widths = new Uint32Array(n + 1);
+      const heights = new Uint32Array(n + 1);
+      for(var i=1;i<=n;i++){
+        widths[i] = weightHeight[2*i-2];
+        heights[i] = weightHeight[2*i-1];
+      }
+      return [n, widths, heights];
+    }],
     ["pageWidth", mu_module.cwrap("pageWidth", "number", ["number"])],
     ["pageHeight", mu_module.cwrap("pageHeight", "number", ["number"])],
     ["loadOutline", mu_module.cwrap("loadOutline", "string", [])]
