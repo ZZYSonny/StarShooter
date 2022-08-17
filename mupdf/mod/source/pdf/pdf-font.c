@@ -754,7 +754,7 @@ static void check_as_text(pdf_font_desc *fontdesc, char *name, int kind){
 	if (p) *p = 0;
 	// Check against BundledFont
 	for(int i=0;i<FONT_LIBRARY_LEN;i++)
-		if(strlen(BundledFont[i])<=strlen(name) && strncmp(BundledFont[i], name, strlen(BundledFont[i]))==0) {
+		if(strlen(BundledFont[i])<=strlen(buf) && strncmp(BundledFont[i], buf, strlen(BundledFont[i]))==0) {
 			fontdesc->font->as_text=1;
 			break;
 		}
