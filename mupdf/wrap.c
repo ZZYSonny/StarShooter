@@ -32,6 +32,17 @@ void wasm_rethrow(fz_context *ctx)
 		EM_ASM({ throw new Error(UTF8ToString($0)); }, fz_caught_message(ctx));
 }
 
+char* buffer_to_string(fz_context *ctx, fz_buffer *buf){
+	static unsigned char *data = NULL;
+	fz_free(ctx, data);
+	data = NULL;
+	fz_append_printf(ctx, buf, "%c", 0);
+	int len = fz_buffer_extract(ctx, buf, &data);
+	//data[len] = 0;
+	fz_drop_buffer(ctx, buf);
+	return (char*)data;
+}
+
 EMSCRIPTEN_KEEPALIVE
 void openDocumentFromBuffer(unsigned char *data, int size)
 {
@@ -93,36 +104,26 @@ static void loadPage(int number)
 EMSCRIPTEN_KEEPALIVE
 char *drawPageAsSVG(int number, int style)
 {
-	static unsigned char *data = NULL;
 	fz_buffer *buf;
 	fz_output *out;
 	fz_device *dev;
 	fz_rect bbox;
 
-	fz_free(ctx, data);
-	data = NULL;
 
 	loadPage(number);
-
 	buf = fz_new_buffer(ctx, 0);
-	{
-		out = fz_new_output_with_buffer(ctx, buf);
-		{
-			bbox = pdf_bound_page(ctx, lastPage);
-			dev = fz_new_svg_device(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, style, 0);
-			pdf_run_page(ctx, lastPage, dev, fz_identity, NULL);
-			fz_close_device(ctx, dev);
-			fz_drop_device(ctx, dev);
-		}
-		fz_write_byte(ctx, out, 0);
-		fz_close_output(ctx, out);
-		fz_drop_output(ctx, out);
-	}
-	int len = fz_buffer_extract(ctx, buf, &data);
-	data[len] = 0;
-	fz_drop_buffer(ctx, buf);
+	out = fz_new_output_with_buffer(ctx, buf);
 
-	return (char *)data;
+	bbox = pdf_bound_page(ctx, lastPage);
+	dev = fz_new_svg_device(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, style, 0);
+	pdf_run_page(ctx, lastPage, dev, fz_identity, NULL);
+	
+	fz_close_device(ctx, dev);
+	fz_drop_device(ctx, dev);
+	fz_write_byte(ctx, out, 0);
+	fz_close_output(ctx, out);
+	fz_drop_output(ctx, out);
+	return buffer_to_string(ctx, buf);
 }
 
 static fz_irect pageBounds(int number)
@@ -208,24 +209,13 @@ char *loadOutline()
 {
 	fz_outline *outline = NULL;
 	fz_buffer *buf = NULL;
-	static unsigned char *data = NULL;
-	fz_free(ctx, data);
-	data = NULL;
 	
 	outline = pdf_load_outline(ctx, doc);
 	buf = fz_new_buffer(ctx, 0);
 
 	outlineToJSONArray(buf, outline);
-	int len = fz_buffer_extract(ctx, buf, &data);
-	data[len] = 0;
 
 	fz_drop_outline(ctx, outline);
-	fz_drop_buffer(ctx, buf);
-	return (char*)data;
+	return buffer_to_string(ctx, buf);
 }
 
-
-//void extractFont()
-//{
-//	int len = pdf_count_objects(ctx, doc);
-//}
