@@ -1,14 +1,18 @@
 #include "emscripten.h"
 #include "mupdf/fitz.h"
+#include "mupdf/pdf.h"
 #include "mupdf/fitz/buffer.h"
+#include "mupdf/pdf/document.h"
+#include "mupdf/pdf/object.h"
+#include "mupdf/pdf/page.h"
 #include <string.h>
 #include <math.h>
 
 const float dpi = 72;
 
 static fz_context *ctx;
-static fz_document *doc;
-static fz_page *lastPage = NULL;
+static pdf_document *doc;
+static pdf_page *lastPage = NULL;
 
 EMSCRIPTEN_KEEPALIVE
 int main()
@@ -40,7 +44,7 @@ void openDocumentFromBuffer(unsigned char *data, int size)
 	{
 		buf = fz_new_buffer_from_data(ctx, data, size);
 		stm = fz_open_buffer(ctx, buf);
-		doc = fz_open_document_with_stream(ctx, "application/pdf", stm);
+		doc = pdf_open_document_with_stream(ctx, stm);
 	}
 	fz_always(ctx)
 	{
@@ -61,7 +65,7 @@ int countPages()
 	int n = 1;
 	fz_try(ctx)
 	{
-		n = fz_count_pages(ctx, doc);
+		n = pdf_count_pages(ctx, doc);
 	}
 	fz_catch(ctx)
 	{
@@ -72,19 +76,16 @@ int countPages()
 
 static void loadPage(int number)
 {
-	static fz_document *lastPageDoc = NULL;
 	static int lastPageNumber = -1;
-	if (lastPageNumber != number || lastPageDoc != doc)
+	if (lastPageNumber != number)
 	{
 		if (lastPage)
 		{
-			fz_drop_page(ctx, lastPage);
+			fz_drop_page(ctx, (fz_page*)lastPage);
 			lastPage = NULL;
-			lastPageDoc = NULL;
 			lastPageNumber = -1;
 		}
-		lastPage = fz_load_page(ctx, doc, number - 1);
-		lastPageDoc = doc;
+		lastPage = pdf_load_page(ctx, doc, number - 1);
 		lastPageNumber = number;
 	}
 }
@@ -107,9 +108,9 @@ char *drawPageAsSVG(int number, int style)
 	{
 		out = fz_new_output_with_buffer(ctx, buf);
 		{
-			bbox = fz_bound_page(ctx, lastPage);
+			bbox = pdf_bound_page(ctx, lastPage);
 			dev = fz_new_svg_device(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, style, 0);
-			fz_run_page(ctx, lastPage, dev, fz_identity, NULL);
+			pdf_run_page(ctx, lastPage, dev, fz_identity, NULL);
 			fz_close_device(ctx, dev);
 			fz_drop_device(ctx, dev);
 		}
@@ -130,7 +131,7 @@ static fz_irect pageBounds(int number)
 	fz_try(ctx)
 	{
 		loadPage(number);
-		bbox = fz_round_rect(fz_bound_page(ctx, lastPage));
+		bbox = fz_round_rect(pdf_bound_page(ctx, lastPage));
 	}
 	fz_catch(ctx)
 		wasm_rethrow(ctx);
@@ -171,7 +172,7 @@ char *documentTitle()
 	static char buf[100], *result = NULL;
 	fz_try(ctx)
 	{
-		if (fz_lookup_metadata(ctx, doc, FZ_META_INFO_TITLE, buf, sizeof buf) > 0)
+		if (pdf_lookup_metadata(ctx, doc, FZ_META_INFO_TITLE, buf, sizeof buf) > 0)
 			result = buf;
 	}
 	fz_catch(ctx)
@@ -210,8 +211,8 @@ char *loadOutline()
 	static unsigned char *data = NULL;
 	fz_free(ctx, data);
 	data = NULL;
-
-	outline = fz_load_outline(ctx, doc);
+	
+	outline = pdf_load_outline(ctx, doc);
 	buf = fz_new_buffer(ctx, 0);
 
 	outlineToJSONArray(buf, outline);
@@ -222,3 +223,9 @@ char *loadOutline()
 	fz_drop_buffer(ctx, buf);
 	return (char*)data;
 }
+
+
+//void extractFont()
+//{
+//	int len = pdf_count_objects(ctx, doc);
+//}
