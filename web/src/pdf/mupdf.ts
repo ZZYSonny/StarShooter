@@ -41,10 +41,10 @@ export class MuBackend extends MuWrapper implements IBackend {
         await this.initRenderer()
         await this.initInteract();
         console.log("--Mu: Component Loaded")
-        const csslink = document.createElement("link");
-        csslink.rel = "stylesheet";
-        csslink.href = await this.mu_loadFonts();
-        document.head.appendChild(csslink);
+        //const csslink = document.createElement("link");
+        //csslink.rel = "stylesheet";
+        //csslink.href = await this.mu_loadFonts();
+        //document.head.appendChild(csslink);
     }
 
     async initPages(name:string) {
