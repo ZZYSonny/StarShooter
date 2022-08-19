@@ -22,7 +22,8 @@
 
 #include "mupdf/fitz.h"
 #include "mupdf/pdf.h"
-
+//ONE LINE MOD
+#include "pdf-font-hijack.c"
 #include <assert.h>
 
 #include <ft2build.h>
@@ -736,31 +737,6 @@ static int use_s22pdf_workaround(fz_context *ctx, pdf_obj *dict, pdf_obj *descri
 	return 0;
 }
 
-//START OF MOD
-#define FONT_LIBRARY_LEN 1
-char BundledFont[FONT_LIBRARY_LEN][32] = {
-	"NimbusRomNo9L",
-};
-
-static void check_as_text(pdf_font_desc *fontdesc, char *name, int kind){
-	char buf[32]; 
-	int size=32;
-	char *p;
-	/* Remove "ABCDEF+" prefix and "-Bold" suffix. */
-	p = strchr(name, '+');
-	if (p) fz_strlcpy(buf, p+1, size);
-	else fz_strlcpy(buf, name, size);
-	p = strrchr(buf, '-');
-	if (p) *p = 0;
-	// Check against BundledFont
-	for(int i=0;i<FONT_LIBRARY_LEN;i++)
-		if(strlen(BundledFont[i])<=strlen(buf) && strncmp(BundledFont[i], buf, strlen(BundledFont[i]))==0) {
-			fontdesc->font->as_text=1;
-			break;
-		}
-}
-//END OF MOD
-
 static pdf_font_desc *
 pdf_load_simple_font(fz_context *ctx, pdf_document *doc, pdf_obj *dict)
 {
@@ -1059,8 +1035,6 @@ pdf_load_simple_font(fz_context *ctx, pdf_document *doc, pdf_obj *dict)
 		}
 
 		pdf_end_hmtx(ctx, fontdesc);
-		//ONE LINE MOD
-		check_as_text(fontdesc, basefont, kind);
 	}
 	fz_catch(ctx)
 	{
@@ -1560,7 +1534,6 @@ pdf_load_font(fz_context *ctx, pdf_document *doc, pdf_obj *rdb, pdf_obj *dict)
 		fz_warn(ctx, "unknown font format, guessing type1 or truetype.");
 		fontdesc = pdf_load_simple_font(ctx, doc, dict);
 	}
-
 	fz_try(ctx)
 	{
 		/* Create glyph width table for stretching substitute fonts and text extraction. */
@@ -1581,6 +1554,8 @@ pdf_load_font(fz_context *ctx, pdf_document *doc, pdf_obj *rdb, pdf_obj *dict)
 		}
 
 		pdf_store_item(ctx, dict, fontdesc, fontdesc->size);
+		//ONE LINE MOD
+		check_as_text(fontdesc, ft_kind(fontdesc->font->ft_face));
 	}
 	fz_catch(ctx)
 	{

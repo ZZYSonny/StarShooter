@@ -817,7 +817,7 @@ svg_dev_ignore_text(fz_context *ctx, fz_device *dev, const fz_text *text, fz_mat
 
 	float black[3] = { 0, 0, 0};
 
-	if (sdev->text_as_text)
+	if (sdev->text_as_text || span->font->as_text)
 	{
 		for (span = text->head; span; span = span->next)
 		{

@@ -3,10 +3,22 @@
 #include "mupdf/pdf.h"
 #include "mupdf/fitz/buffer.h"
 #include "mupdf/pdf/document.h"
+#include "mupdf/pdf/font.h"
 #include "mupdf/pdf/object.h"
 #include "mupdf/pdf/page.h"
 #include <string.h>
 #include <math.h>
+EM_JS(void, say_str, (const char* str), {
+  console.log('STR ' + UTF8ToString(str));
+});
+
+EM_JS(void, say_int, (const int x), {
+  console.log('INT:' + x);
+});
+
+EM_JS(void, say_char, (const char x), {
+  console.log('CHAR:' + String.fromCharCode(x));
+});
 
 const float dpi = 72;
 
@@ -32,14 +44,22 @@ void wasm_rethrow(fz_context *ctx)
 		EM_ASM({ throw new Error(UTF8ToString($0)); }, fz_caught_message(ctx));
 }
 
-char* buffer_to_string(fz_context *ctx, fz_buffer *buf){
-	static unsigned char *data = NULL;
-	fz_free(ctx, data);
-	data = NULL;
+static unsigned char *buf_data = NULL;
+static int buf_len = 0;
+char* bufferToString(fz_context *ctx, fz_buffer *buf){
+	
+	fz_free(ctx, buf_data);
+	buf_data = NULL;
 	fz_append_printf(ctx, buf, "%c", 0);
-	int len = fz_buffer_extract(ctx, buf, &data);
+	buf_len = fz_buffer_extract(ctx, buf, &buf_data);
 	fz_drop_buffer(ctx, buf);
-	return (char*)data;
+	return (char*)buf_data;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int getBufferLen()
+{
+	return buf_len;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -108,7 +128,7 @@ char *drawPageAsSVG(int number, int style)
 	fz_write_byte(ctx, out, 0);
 	fz_close_output(ctx, out);
 	fz_drop_output(ctx, out);
-	return buffer_to_string(ctx, buf);
+	return bufferToString(ctx, buf);
 }
 
 static fz_irect pageBounds(int number)
@@ -141,7 +161,7 @@ char* pageWeightHeight()
 	}
 	fz_append_printf(ctx, buf, "]");
 
-	return buffer_to_string(ctx, buf);
+	return bufferToString(ctx, buf);
 }
 
 
@@ -191,6 +211,46 @@ char *loadOutline()
 	outlineToJSONArray(buf, outline);
 
 	fz_drop_outline(ctx, outline);
-	return buffer_to_string(ctx, buf);
+	return bufferToString(ctx, buf);
 }
 
+int font_obj_cur=0;
+pdf_obj *font_obj, *font_desc, *font_ttf;
+void dropFontTemp(){
+	if(!font_ttf){
+		pdf_drop_obj(ctx,font_ttf);
+		font_ttf=NULL;
+	}
+	if(!font_desc){
+		pdf_drop_obj(ctx,font_desc);
+		font_desc=NULL;
+	}
+	if(!font_obj){
+		pdf_drop_obj(ctx, font_obj);
+		font_obj=NULL;
+	}
+}
+EMSCRIPTEN_KEEPALIVE
+const char *loadFontName()
+{
+	int len = pdf_count_objects(ctx, doc);
+	font_obj_cur+=1;
+	for(;font_obj_cur<len;font_obj_cur++){
+		dropFontTemp();
+		font_obj = pdf_new_indirect(ctx, doc, font_obj_cur, 0);
+		font_desc = pdf_dict_get(ctx, font_obj, PDF_NAME(FontDescriptor));
+		if(!font_desc) continue;
+		font_ttf = pdf_dict_get(ctx, font_desc, PDF_NAME(FontFile2));
+		if(!font_ttf) continue;
+		return pdf_to_name(ctx, pdf_dict_get(ctx, font_obj, PDF_NAME(BaseFont)));
+	}
+	dropFontTemp();
+	return "(finish)";
+}
+
+EMSCRIPTEN_KEEPALIVE
+char *loadFontFile()
+{
+	fz_buffer *buf = pdf_load_stream(ctx, font_ttf);
+	return bufferToString(ctx, buf);
+}

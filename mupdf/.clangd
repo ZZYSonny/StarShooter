@@ -1,4 +1,5 @@
 CompileFlags:
   Add: 
     - "-I/home/zzysonny/Documents/Code/Project/StarShooter/mupdf/src/include"
-    - "-I/usr/lib/emscripten/system/include/"
+    #- "-I/usr/lib/emscripten/system/include/"
+    - "-I/home/zzysonny/.emscripten_cache/sysroot/include"

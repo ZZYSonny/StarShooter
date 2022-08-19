@@ -14,6 +14,9 @@ export class MuWrapper {
         this.mu_worker.postMessage(["loadOutline", []]) as Promise<string>;
     protected mu_drawPageAsSVG = (pn: number, text_as_text: number) =>
         this.mu_worker.postMessage(["drawPageAsSVG", [pn, text_as_text]]) as Promise<string>;
+    protected mu_loadFonts = () =>
+        this.mu_worker.postMessage(["loadFonts", []]) as Promise<string>;
+
     //protected mu_pageLinks:
     //    (arg_0: number, arg_1: number, arg_2: number) => string;
 
@@ -38,6 +41,10 @@ export class MuBackend extends MuWrapper implements IBackend {
         await this.initRenderer()
         await this.initInteract();
         console.log("--Mu: Component Loaded")
+        const csslink = document.createElement("link");
+        csslink.rel = "stylesheet";
+        csslink.href = await this.mu_loadFonts();
+        document.head.appendChild(csslink);
     }
 
     async initPages(name:string) {

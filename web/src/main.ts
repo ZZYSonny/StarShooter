@@ -8,7 +8,7 @@ if ('serviceWorker' in navigator) {
 }
 
 (async ()=>{
-    const [url, name] = await ChoosePDF();
+    const [url, name] = await ConstantPDF();
     const doc = new MuBackend();
     await doc.init(url, name);
 
