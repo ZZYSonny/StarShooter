@@ -1,5 +1,6 @@
 #include "emscripten.h"
 #include "mupdf/fitz.h"
+#include "mupdf/fitz/font.h"
 #include "mupdf/pdf.h"
 #include "mupdf/fitz/buffer.h"
 #include "mupdf/pdf/document.h"
@@ -18,6 +19,9 @@ EM_JS(void, say_int, (const int x), {
 
 EM_JS(void, say_char, (const char x), {
   console.log('CHAR:' + String.fromCharCode(x));
+});
+EM_JS(void, say_char_int, (const int x, const int y), {
+  console.log('CHAR INT:' + String.fromCharCode(x) + " " + y);
 });
 
 const float dpi = 72;
@@ -215,7 +219,8 @@ char *loadOutline()
 }
 
 int font_obj_cur=0;
-pdf_obj *font_obj, *font_desc, *font_ttf;
+pdf_obj *font_obj, *font_desc, *font_ttf, *font_rdb;
+pdf_font_desc *font;
 void dropFontTemp(){
 	if(!font_ttf){
 		pdf_drop_obj(ctx,font_ttf);
@@ -230,6 +235,43 @@ void dropFontTemp(){
 		font_obj=NULL;
 	}
 }
+
+static void
+svg_path_moveto(fz_context *ctx, void *arg, float x, float y)
+{
+	fz_output *out = (fz_output *)arg;
+	fz_write_printf(ctx, out, "M %g %g ", x, y);
+}
+
+static void
+svg_path_lineto(fz_context *ctx, void *arg, float x, float y)
+{
+	fz_output *out = (fz_output *)arg;
+	fz_write_printf(ctx, out, "L %g %g ", x, y);
+}
+
+static void
+svg_path_curveto(fz_context *ctx, void *arg, float x1, float y1, float x2, float y2, float x3, float y3)
+{
+	fz_output *out = (fz_output *)arg;
+	fz_write_printf(ctx, out, "C %g %g %g %g %g %g ", x1, y1, x2, y2, x3, y3);
+}
+
+static void
+svg_path_close(fz_context *ctx, void *arg)
+{
+	fz_output *out = (fz_output *)arg;
+	fz_write_printf(ctx, out, "Z ");
+}
+
+static const fz_path_walker svg_path_walker =
+{
+	svg_path_moveto,
+	svg_path_lineto,
+	svg_path_curveto,
+	svg_path_close
+};
+
 EMSCRIPTEN_KEEPALIVE
 const char *loadFontName()
 {
@@ -242,7 +284,9 @@ const char *loadFontName()
 		if(!font_desc) continue;
 		font_ttf = pdf_dict_get(ctx, font_desc, PDF_NAME(FontFile2));
 		if(!font_ttf) continue;
-		return pdf_to_name(ctx, pdf_dict_get(ctx, font_obj, PDF_NAME(BaseFont)));
+		font = pdf_load_font(ctx, doc, NULL, font_obj);
+		if(!font->font->as_text) continue;
+		return font->font->name;
 	}
 	dropFontTemp();
 	return "(finish)";

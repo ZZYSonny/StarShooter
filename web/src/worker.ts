@@ -55,15 +55,14 @@ const mu_module_functions = mu_module_promise.then(mu_module => {
       while(true){
         const basefont = getFontName();
         if(basefont=="(finish)") break;
-        //if(fontName=="(null)") continue
-        const fontname = basefont.split("+").pop().split("-");
-        const svgFontFamily = fontname[0];
-        var fontCSS = `font-family: '${svgFontFamily}';`;
+        if(basefont=="(null)") continue;
+        const fontname = basefont.split("+").pop().split(/[-,]/);
+        var fontCSS = `font-family: '${fontname[0]}';`;
         const fontSuffix = fontname[1] || "";
-        //if(fonts.has(svgFontFamily)) continue;
         if(fontSuffix.includes("Bold")) fontCSS += "font-weight: bold;";
         if(fontSuffix.includes("Italic")) fontCSS += "font-style: italic;";
-        fonts.add(svgFontFamily);
+        if(fonts.has(fontCSS)) continue;
+        else fonts.add(fontCSS);
         const ptr = getFontFile();
         const len = getBufferLen();
         const ttfData = mu_module.HEAP8.slice(ptr, ptr+len);

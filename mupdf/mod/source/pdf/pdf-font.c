@@ -1555,7 +1555,7 @@ pdf_load_font(fz_context *ctx, pdf_document *doc, pdf_obj *rdb, pdf_obj *dict)
 
 		pdf_store_item(ctx, dict, fontdesc, fontdesc->size);
 		//ONE LINE MOD
-		check_as_text(fontdesc, ft_kind(fontdesc->font->ft_face));
+		check_as_text(ctx, fontdesc);
 	}
 	fz_catch(ctx)
 	{
