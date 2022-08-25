@@ -34,14 +34,13 @@ static void check_as_text(fz_context *ctx, pdf_font_desc *fontdesc){
 			return;
 		}
 	//TTF
-	if((!strcmp(FT_Get_Font_Format(fontdesc->font->ft_face), "TrueType"))){
-		for(int i=0;i<3200;i++){
-			int x = fz_encode_character(ctx, fontdesc->font, i);
-			if(x) {
-				fontdesc->font->as_text=1;
-				return;
-			}
-		}
-
-	}
+	//if((!strcmp(FT_Get_Font_Format(fontdesc->font->ft_face), "TrueType"))){
+	//	for(int i=0;i<3200;i++){
+	//		int x = fz_encode_character(ctx, fontdesc->font, i);
+	//		if(x) {
+	//			fontdesc->font->as_text=1;
+	//			return;
+	//		}
+	//	}
+	//}
 }

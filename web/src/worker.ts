@@ -15,7 +15,7 @@ const mu_module_functions = mu_module_promise.then(mu_module => {
   const getFontName = mu_module.cwrap("loadFontName", "string", []);
   const getFontFile = mu_module.cwrap("loadFontFile", "number", []);
   const getBufferLen = mu_module.cwrap("getBufferLen", "number", []);
-
+  const getSVGFont = mu_module.cwrap("loadSVGFont", "string", []);
   return new Map<string,any>([
     ["openDocumentFromBuffer", async (url: string) => {
       const file = await fetch(url);
@@ -63,6 +63,10 @@ const mu_module_functions = mu_module_promise.then(mu_module => {
         if(fontSuffix.includes("Italic")) fontCSS += "font-style: italic;";
         if(fonts.has(fontCSS)) continue;
         else fonts.add(fontCSS);
+
+        const s = getSVGFont();
+        console.log(s)
+        break;
         const ptr = getFontFile();
         const len = getBufferLen();
         const ttfData = mu_module.HEAP8.slice(ptr, ptr+len);
