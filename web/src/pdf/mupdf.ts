@@ -8,15 +8,16 @@ export class MuWrapper {
         this.mu_worker.postMessage(["openDocumentFromBuffer", [url]]) as Promise<void>;
     protected mu_documentTitle = () =>
         this.mu_worker.postMessage(["documentTitle", []]) as Promise<string>;
-    protected mu_pageWidthHeight = () =>
-        this.mu_worker.postMessage(["pageWeightHeight", []]) as Promise<[number, Uint32Array, Uint32Array]>;
+    protected mu_countPages = () =>
+        this.mu_worker.postMessage(["countPages", []]) as Promise<number>;
+    protected mu_pageWidth = (pn:number) =>
+        this.mu_worker.postMessage(["pageWidth", [pn]]) as Promise<number>;
+    protected mu_pageHeight = (pn:number) =>
+        this.mu_worker.postMessage(["pageHeight", [pn]]) as Promise<number>;
     protected mu_loadOutline = () =>
         this.mu_worker.postMessage(["loadOutline", []]) as Promise<string>;
     protected mu_drawPageAsSVG = (pn: number, text_as_text: number) =>
         this.mu_worker.postMessage(["drawPageAsSVG", [pn, text_as_text]]) as Promise<string>;
-    protected mu_loadFonts = () =>
-        this.mu_worker.postMessage(["loadFonts", []]) as Promise<string>;
-
     //protected mu_pageLinks:
     //    (arg_0: number, arg_1: number, arg_2: number) => string;
 
@@ -41,16 +42,20 @@ export class MuBackend extends MuWrapper implements IBackend {
         await this.initRenderer()
         await this.initInteract();
         console.log("--Mu: Component Loaded")
-        const csslink = document.createElement("link");
-        csslink.rel = "stylesheet";
-        csslink.href = await this.mu_loadFonts();
-        document.head.appendChild(csslink);
     }
 
     async initPages(name:string) {
-        const [n, widths, heights] = await this.mu_pageWidthHeight();
+        const n = await this.mu_countPages();
+        const widths = new Uint32Array(n + 1);
+        const heights = new Uint32Array(n + 1);
         var title = await this.mu_documentTitle();
         if(title=="") title=name;
+        for (var i = 1; i <= n; i++) {
+            const w = await this.mu_pageWidth(i);
+            const h = await this.mu_pageHeight(i);
+            widths[i] = w;
+            heights[i] = h;
+        }
         this.pageinfo = {
             doc_title: title,
             doc_pages: n,

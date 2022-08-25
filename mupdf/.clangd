@@ -1,6 +1,4 @@
 CompileFlags:
   Add: 
-    - "-Isrc/include"
-    - "-I/home/zzysonny/.emscripten_cache/sysroot/include"
-    - "-Isrc/thirdparty/freetype/include"
-    - "-Isrc/thirdparty/harfbuzz/src/"
+    - "-I/home/zzysonny/Documents/Code/Project/StarShooter/mupdf/src/include"
+    - "-I/usr/lib/emscripten/system/include/"

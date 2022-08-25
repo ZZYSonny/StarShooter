@@ -11,8 +11,7 @@ BUILD_FLAGS := \
 	-s ALLOW_MEMORY_GROWTH=1 \
 	-s ENVIRONMENT=worker \
 	-s EXPORT_ES6=1 \
-	-s MODULARIZE=1 \
-	-s FORCE_FILESYSTEM=0
+	-s MODULARIZE=1
 BUILD_DIR := $(MUPDF_SRC)/build/wasm/$(build)
 
 MUPDF_JS := libmupdf.js
