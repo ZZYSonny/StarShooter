@@ -107,7 +107,7 @@ std::string drawPageAsSVG(int number)
 		out = fz_new_output_with_buffer(ctx, buf);
 		{
 			bbox = fz_bound_page(ctx, lastPage);
-			dev = fz_new_svg_device_with_id(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, 1, 0, &number);
+			dev = fz_new_svg_device_with_id(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, 1, 1, &number);
 			fz_run_page(ctx, lastPage, dev, fz_identity, NULL);
 			fz_close_device(ctx, dev);
 			fz_drop_device(ctx, dev);

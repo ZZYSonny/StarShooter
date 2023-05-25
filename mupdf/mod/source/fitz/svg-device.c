@@ -730,6 +730,14 @@ svg_dev_clip_stroke_path(fz_context *ctx, fz_device *dev, const fz_path *path, c
 	fz_append_printf(ctx, out, "<g mask=\"url(#mask_%d_%d)\">\n", dev->refs, num);
 }
 
+static int span_as_text(fz_text_span *span){
+	for(int i=0;i<span->len;i++){
+		fz_text_item *it = &span->items[i];
+		if(it->ucs == 0xfffd) return 0;
+	}
+	return 1;
+}
+
 static void
 svg_dev_fill_text(fz_context *ctx, fz_device *dev, const fz_text *text, fz_matrix ctm,
 	fz_colorspace *colorspace, const float *color, float alpha, fz_color_params color_params)
@@ -739,18 +747,15 @@ svg_dev_fill_text(fz_context *ctx, fz_device *dev, const fz_text *text, fz_matri
 	font *fnt;
 	fz_text_span *span;
 
-	if (sdev->text_as_text)
+	for (span = text->head; span; span = span->next)
 	{
-		for (span = text->head; span; span = span->next)
+		if (sdev->text_as_text && span_as_text(span))
 		{
 			fz_append_printf(ctx, out, "<text");
 			svg_dev_fill_color(ctx, sdev, colorspace, color, alpha, color_params);
 			svg_dev_text_span(ctx, sdev, ctm, span);
 		}
-	}
-	else
-	{
-		for (span = text->head; span; span = span->next)
+		else
 		{
 			fnt = svg_dev_text_span_as_paths_defs(ctx, dev, span, ctm);
 			svg_dev_text_span_as_paths_fill(ctx, dev, span, ctm, colorspace, color, alpha, fnt, color_params);
@@ -767,18 +772,15 @@ svg_dev_stroke_text(fz_context *ctx, fz_device *dev, const fz_text *text, const 
 	font *fnt;
 	fz_text_span *span;
 
-	if (sdev->text_as_text)
+	for (span = text->head; span; span = span->next)
 	{
-		for (span = text->head; span; span = span->next)
+		if (sdev->text_as_text && span_as_text(span))
 		{
 			fz_append_printf(ctx, out, "<text");
 			svg_dev_fill_color(ctx, sdev, colorspace, color, alpha, color_params);
 			svg_dev_text_span(ctx, sdev, ctm, span);
 		}
-	}
-	else
-	{
-		for (span = text->head; span; span = span->next)
+		else
 		{
 			fnt = svg_dev_text_span_as_paths_defs(ctx, dev, span, ctm);
 			svg_dev_text_span_as_paths_stroke(ctx, dev, span, stroke, ctm, colorspace, color, alpha, fnt, color_params);
@@ -804,18 +806,15 @@ svg_dev_clip_text(fz_context *ctx, fz_device *dev, const fz_text *text, fz_matri
 	fz_append_printf(ctx, out, "<mask id=\"mask_%d_%d\" x=\"%g\" y=\"%g\" width=\"%g\" height=\"%g\"",
 			dev->refs, num, bounds.x0, bounds.y0, bounds.x1 - bounds.x0, bounds.y1 - bounds.y0);
 	fz_append_printf(ctx, out, " maskUnits=\"userSpaceOnUse\" maskContentUnits=\"userSpaceOnUse\">\n");
-	if (sdev->text_as_text)
+	for (span = text->head; span; span = span->next)
 	{
-		for (span = text->head; span; span = span->next)
+		if (sdev->text_as_text && span_as_text(span))
 		{
 			fz_append_printf(ctx, out, "<text");
 			svg_dev_fill_color(ctx, sdev, fz_device_rgb(ctx), white, 1, fz_default_color_params);
 			svg_dev_text_span(ctx, sdev, ctm, span);
 		}
-	}
-	else
-	{
-		for (span = text->head; span; span = span->next)
+		else
 		{
 			fnt = svg_dev_text_span_as_paths_defs(ctx, dev, span, ctm);
 			svg_dev_text_span_as_paths_fill(ctx, dev, span, ctm, fz_device_rgb(ctx), white, 1.0f, fnt, fz_default_color_params);
@@ -844,19 +843,16 @@ svg_dev_clip_stroke_text(fz_context *ctx, fz_device *dev, const fz_text *text, c
 	fz_append_printf(ctx, out, "<mask id=\"mask_%d_%d\" x=\"%g\" y=\"%g\" width=\"%g\" height=\"%g\"",
 		dev->refs, num, bounds.x0, bounds.y0, bounds.x1 - bounds.x0, bounds.y1 - bounds.y0);
 	fz_append_printf(ctx, out, " maskUnits=\"userSpaceOnUse\" maskContentUnits=\"userSpaceOnUse\">\n");
-	if (sdev->text_as_text)
+	for (span = text->head; span; span = span->next)
 	{
-		for (span = text->head; span; span = span->next)
+		if (sdev->text_as_text && span_as_text(span))
 		{
 			fz_append_printf(ctx, out, "<text");
 			svg_dev_stroke_state(ctx, sdev, stroke, fz_identity);
 			svg_dev_stroke_color(ctx, sdev, fz_device_rgb(ctx), white, 1, fz_default_color_params);
 			svg_dev_text_span(ctx, sdev, ctm, span);
 		}
-	}
-	else
-	{
-		for (span = text->head; span; span = span->next)
+		else
 		{
 			fnt = svg_dev_text_span_as_paths_defs(ctx, dev, span, ctm);
 			svg_dev_text_span_as_paths_stroke(ctx, dev, span, stroke, ctm, fz_device_rgb(ctx), white, 1.0f, fnt, fz_default_color_params);
