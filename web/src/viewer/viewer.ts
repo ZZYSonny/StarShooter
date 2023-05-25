@@ -1,7 +1,7 @@
 import { CacheMap } from "../helper/cache";
 import { ILayout } from "../pdf/layout";
 import { IBackend, IDocPages, IDocRender } from "../pdf/interface";
-import {evTransformer,getCurVPBox,getEarlyVPBox} from "../helper/viewport";
+import {ViewRectangle, evTransformer,getCurVPBox,getEarlyVPBox} from "../helper/viewport";
 import { PageRange } from "../helper/viewport";
 
 const IMAGE_CAPACITY = 12;
@@ -120,9 +120,16 @@ export class DocViewer {
     }
   }
 
+  lastViewBox: ViewRectangle = getCurVPBox();
   onScrollIng() {
-    const box = this.viewer_layout.getPageRange(getCurVPBox());
-    this.viewUpdateUrgent(box);
+    const curViewBox = getCurVPBox();
+    const box = this.viewer_layout.getPageRange(curViewBox);
+    if (Math.abs(curViewBox[1] - this.lastViewBox[1]) < 0.5 * visualViewport.height) {
+      this.viewUpdateUrgent(box);
+    } else {
+      console.log("Scrolling Too Fast, Skipping Urgent Update")
+    }
+    this.lastViewBox = curViewBox;
   }
 
   onScrollEnd() {
