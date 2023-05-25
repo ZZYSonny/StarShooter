@@ -5,7 +5,7 @@
 if [ ! -d "src" ] 
 then
     echo "Downloading mupdf"
-    VERSION=1.20.0
+    VERSION=1.22.1
     curl -s https://mupdf.com/downloads/archive/mupdf-$VERSION-source.tar.gz | tar -xz
     mv mupdf-$VERSION-source src
     cp src/COPYING LICENSE
@@ -18,5 +18,5 @@ echo "Making"
 make
 
 echo "Copying"
-mv libmupdf.js ../web/src/pdf/libmupdf.js
-mv libmupdf.wasm ../web/out/wasm/libmupdf.wasm
+cp libmupdf.js ../web/src/pdf/libmupdf.js
+cp libmupdf.wasm ../web/out/wasm/libmupdf.wasm

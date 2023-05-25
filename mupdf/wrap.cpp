@@ -1,7 +1,11 @@
 #include "emscripten.h"
+#include "mupdf/fitz/output-svg.h"
+#include <emscripten/bind.h>
+using namespace emscripten;
 #include "mupdf/fitz.h"
 #include "mupdf/fitz/buffer.h"
 #include <string.h>
+#include <string>
 #include <math.h>
 
 const float dpi = 72;
@@ -28,13 +32,12 @@ void wasm_rethrow(fz_context *ctx)
 		EM_ASM({ throw new Error(UTF8ToString($0)); }, fz_caught_message(ctx));
 }
 
-EMSCRIPTEN_KEEPALIVE
-void openDocumentFromBuffer(unsigned char *data, int size)
+
+void openDocument(unsigned long dataPointer, unsigned int size)
 {
+	unsigned char* data = (unsigned char*)(dataPointer);
 	fz_buffer *buf = NULL;
 	fz_stream *stm = NULL;
-
-	/* NOTE: We take ownership of input data! */
 
 	fz_try(ctx)
 	{
@@ -55,7 +58,7 @@ void openDocumentFromBuffer(unsigned char *data, int size)
 	return;
 }
 
-EMSCRIPTEN_KEEPALIVE
+
 int countPages()
 {
 	int n = 1;
@@ -89,17 +92,13 @@ static void loadPage(int number)
 	}
 }
 
-EMSCRIPTEN_KEEPALIVE
-char *drawPageAsSVG(int number, int style)
+
+std::string drawPageAsSVG(int number)
 {
-	static unsigned char *data = NULL;
 	fz_buffer *buf;
 	fz_output *out;
 	fz_device *dev;
 	fz_rect bbox;
-
-	fz_free(ctx, data);
-	data = NULL;
 
 	loadPage(number);
 
@@ -108,7 +107,7 @@ char *drawPageAsSVG(int number, int style)
 		out = fz_new_output_with_buffer(ctx, buf);
 		{
 			bbox = fz_bound_page(ctx, lastPage);
-			dev = fz_new_svg_device(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, style, 0);
+			dev = fz_new_svg_device(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, 1, 0);
 			fz_run_page(ctx, lastPage, dev, fz_identity, NULL);
 			fz_close_device(ctx, dev);
 			fz_drop_device(ctx, dev);
@@ -117,11 +116,11 @@ char *drawPageAsSVG(int number, int style)
 		fz_close_output(ctx, out);
 		fz_drop_output(ctx, out);
 	}
-	int len = fz_buffer_extract(ctx, buf, &data);
-	data[len] = 0;
+	
+	std::string ans((char*)buf->data);
 	fz_drop_buffer(ctx, buf);
 
-	return (char *)data;
+	return ans;
 }
 
 static fz_irect pageBounds(int number)
@@ -137,7 +136,6 @@ static fz_irect pageBounds(int number)
 	return bbox;
 }
 
-EMSCRIPTEN_KEEPALIVE
 int pageWidth(int number)
 {
 	fz_irect bbox = fz_empty_irect;
@@ -151,7 +149,6 @@ int pageWidth(int number)
 	return bbox.x1 - bbox.x0;
 }
 
-EMSCRIPTEN_KEEPALIVE
 int pageHeight(int number)
 {
 	fz_irect bbox = fz_empty_irect;
@@ -165,18 +162,18 @@ int pageHeight(int number)
 	return bbox.y1 - bbox.y0;
 }
 
-EMSCRIPTEN_KEEPALIVE
-char *documentTitle()
+std::string documentTitle()
 {
-	static char buf[100], *result = NULL;
+	std::string ans(128,0);
 	fz_try(ctx)
 	{
-		if (fz_lookup_metadata(ctx, doc, FZ_META_INFO_TITLE, buf, sizeof buf) > 0)
-			result = buf;
+		fz_lookup_metadata(ctx, doc, FZ_META_INFO_TITLE, (char *)ans.data(), 128);
 	}
 	fz_catch(ctx)
+	{
 		wasm_rethrow(ctx);
-	return result;
+	}
+	return ans;
 }
 
 void outlineToJSON(fz_buffer *buf, fz_outline *outline);
@@ -202,23 +199,29 @@ void outlineToJSON(fz_buffer *buf, fz_outline *outline){
 	}
 }
 
-EMSCRIPTEN_KEEPALIVE
-char *loadOutline()
+std::string loadOutline()
 {
 	fz_outline *outline = NULL;
 	fz_buffer *buf = NULL;
-	static unsigned char *data = NULL;
-	fz_free(ctx, data);
-	data = NULL;
 
 	outline = fz_load_outline(ctx, doc);
 	buf = fz_new_buffer(ctx, 0);
 
 	outlineToJSONArray(buf, outline);
-	int len = fz_buffer_extract(ctx, buf, &data);
-	data[len] = 0;
 
+	std::string ans((char*)buf->data);
+	
 	fz_drop_outline(ctx, outline);
 	fz_drop_buffer(ctx, buf);
-	return (char*)data;
+	return ans;
+}
+
+EMSCRIPTEN_BINDINGS(my_module) {
+	function("openDocument", &openDocument);
+    function("countPages", &countPages);
+    function("drawPageAsSVG", &drawPageAsSVG);
+	function("pageWidth", &pageWidth);
+	function("pageHeight", &pageHeight);
+	function("documentTitle", &documentTitle);
+	function("loadOutline", &loadOutline);
 }

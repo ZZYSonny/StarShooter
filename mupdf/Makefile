@@ -1,8 +1,9 @@
 MUPDF_SRC := src
-EMSDK_DIR := /usr/lib/emsdk
+EMSDK_DIR := /usr/lib/emscripten
 
 build := release
 BUILD_FLAGS := \
+	-lembind \
     -flto \
 	-O3 -Wall -Os \
 	-s VERBOSE=0 \
@@ -11,7 +12,11 @@ BUILD_FLAGS := \
 	-s ALLOW_MEMORY_GROWTH=1 \
 	-s ENVIRONMENT=worker \
 	-s EXPORT_ES6=1 \
-	-s MODULARIZE=1
+	-s MODULARIZE=1 \
+	-s WASM=1 \
+	-s EXPORTED_FUNCTIONS='["_malloc", "_main"]' \
+	-s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]'
+
 BUILD_DIR := $(MUPDF_SRC)/build/wasm/$(build)
 
 MUPDF_JS := libmupdf.js
@@ -27,13 +32,11 @@ $(MUPDF_CORE): #.FORCE
 		libs
 
 wasm: $(MUPDF_JS) $(MUPDF_WASM)
-$(MUPDF_JS) $(MUPDF_WASM): $(MUPDF_CORE) wrap.c wrap.js
+$(MUPDF_JS) $(MUPDF_WASM): $(MUPDF_CORE) wrap.cpp wrap.js
 	emcc -o $@ $(BUILD_FLAGS) \
-		-s WASM=1 \
-		-s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]' \
 		-I $(MUPDF_SRC)/include \
 		--pre-js wrap.js \
-		wrap.c \
+		wrap.cpp \
 		$(BUILD_DIR)/libmupdf.a \
 		$(BUILD_DIR)/libmupdf-third.a
 

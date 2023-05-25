@@ -6,10 +6,10 @@ export type ViewRectangle = [number, number, number, number];
 
 export function getCurVPBox(): ViewRectangle {
   return [
-    window.scrollX + visualViewport.offsetLeft,
-    window.scrollY + visualViewport.offsetTop,
-    window.scrollX + visualViewport.offsetLeft + visualViewport.width,
-    window.scrollY + visualViewport.offsetTop + visualViewport.height
+    (window.scrollX + visualViewport.offsetLeft),
+    (window.scrollY + visualViewport.offsetTop),
+    (window.scrollX + visualViewport.offsetLeft + visualViewport.width),
+    (window.scrollY + visualViewport.offsetTop + visualViewport.height),
   ];
 }
 

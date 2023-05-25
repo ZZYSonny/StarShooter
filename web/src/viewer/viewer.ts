@@ -88,6 +88,7 @@ export class DocViewer {
   async viewUpdateEarly([l, r]: PageRange) {
     for (var i = l; i <= r; i++) {
       if (!this.viewer_pages.has(i)) {
+        console.log(`Early Adding ${i}`)
         const info = this.pageAdd(i);
         await this.pageDraw(info, 1);
       }
@@ -112,6 +113,7 @@ export class DocViewer {
     for (var i of pages) {
       //add box if box does not exist
       if (!this.viewer_pages.has(i)) {
+        console.log(`Urgent Adding ${i}`)
         const info = this.pageAdd(i);
         await this.pageDraw(info, 0);
       }
