@@ -1,9 +1,9 @@
 #include "emscripten.h"
-#include "mupdf/fitz/output-svg.h"
 #include <emscripten/bind.h>
 using namespace emscripten;
 #include "mupdf/fitz.h"
 #include "mupdf/fitz/buffer.h"
+#include "mupdf/fitz/output-svg.h"
 #include <string.h>
 #include <string>
 #include <math.h>
@@ -107,7 +107,7 @@ std::string drawPageAsSVG(int number)
 		out = fz_new_output_with_buffer(ctx, buf);
 		{
 			bbox = fz_bound_page(ctx, lastPage);
-			dev = fz_new_svg_device(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, 1, 0);
+			dev = fz_new_svg_device_with_id(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, 1, 0, &number);
 			fz_run_page(ctx, lastPage, dev, fz_identity, NULL);
 			fz_close_device(ctx, dev);
 			fz_drop_device(ctx, dev);
@@ -170,9 +170,7 @@ std::string documentTitle()
 		fz_lookup_metadata(ctx, doc, FZ_META_INFO_TITLE, (char *)ans.data(), 128);
 	}
 	fz_catch(ctx)
-	{
 		wasm_rethrow(ctx);
-	}
 	return ans;
 }
 

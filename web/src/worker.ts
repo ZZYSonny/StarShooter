@@ -23,11 +23,11 @@ registerPromiseWorker(async ([name, args]) => {
     const [pn]: [number] = args;
     return mu_module.drawPageAsSVG(pn)
       //.replace('viewBox','buffered-rendering="static" viewBox')
-      .replaceAll('font_', `font_${pn}_`)
-      .replaceAll('<mask id="ma',`<mask id="ma_${pn}_`)
-      .replaceAll('"url(#ma',`"url(#ma_${pn}_`)
-      .replaceAll('<clipPath id="cp',`<clipPath id="cp_${pn}_`)
-      .replaceAll('"url(#cp',`"url(#cp_${pn}_`);
+      //.replaceAll('font_', `font_${pn}_`)
+      //.replaceAll('<mask id="ma',`<mask id="ma_${pn}_`)
+      //.replaceAll('"url(#ma',`"url(#ma_${pn}_`)
+      //.replaceAll('<clipPath id="cp',`<clipPath id="cp_${pn}_`)
+      //.replaceAll('"url(#cp',`"url(#cp_${pn}_`);
   } else {
     const func = mu_module[name];
     if(!func) throw new Error(`Function ${name} not found`);
