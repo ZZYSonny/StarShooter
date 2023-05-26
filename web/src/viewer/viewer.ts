@@ -109,7 +109,7 @@ export class DocViewer {
   async viewUpdateUrgent([l, r]: PageRange) {
     const pages: number[] = [];
     if (l - 1 >= 1) pages.push(l - 1);
-    if (r + 1 <= this.doc_page.doc_pages) pages.push(r + 1);
+    if (r + 1 < this.doc_page.doc_pages) pages.push(r + 1);
     for (var i of pages) {
       //add box if box does not exist
       if (!this.viewer_pages.has(i)) {

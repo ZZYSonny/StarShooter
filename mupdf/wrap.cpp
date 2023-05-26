@@ -66,7 +66,7 @@ static void loadPage(int number)
 			lastPageDoc = NULL;
 			lastPageNumber = -1;
 		}
-		lastPage = pdf_load_page(ctx, doc, number - 1);
+		lastPage = pdf_load_page(ctx, doc, number);
 		lastPageDoc = doc;
 		lastPageNumber = number;
 	}
@@ -91,13 +91,13 @@ std::vector<int> pageBounds()
 	fz_irect bbox = fz_empty_irect;
 	fz_try(ctx)
 	{
-		for(int i=1;i<=n;i++){
+		for(int i=0;i<n;i++){
 			loadPage(i);
 			bbox = fz_round_rect(pdf_bound_page(ctx, lastPage));
 			//Width
-			ans[2*i-2] = bbox.x1 - bbox.x0;
+			ans[2*i] = bbox.x1 - bbox.x0;
 			//Height
-			ans[2*i-1] = bbox.y1 - bbox.y0;
+			ans[2*i+1] = bbox.y1 - bbox.y0;
 		}
 	}
 	fz_catch(ctx)

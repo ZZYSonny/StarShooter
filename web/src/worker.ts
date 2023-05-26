@@ -29,11 +29,11 @@ registerPromiseWorker(async ([name, args]) => {
   } else if(name=="pageBounds"){
     const bounds = mu_module.pageBounds();
     const n = bounds.size() / 2;
-    const widths = new Uint32Array(n + 1);
-    const heights = new Uint32Array(n + 1);
-    for (var i = 1; i <= n; i++) {
-        widths[i] = bounds.get(2*(i-1));
-        heights[i] = bounds.get(2*(i-1)+1);
+    const widths = new Uint32Array(n);
+    const heights = new Uint32Array(n);
+    for (var i = 0; i < n; i++) {
+        widths[i] = bounds.get(2*i);
+        heights[i] = bounds.get(2*i+1);
     }
     bounds.delete();
     return [widths, heights];

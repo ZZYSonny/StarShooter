@@ -12,10 +12,12 @@ export class ILayout implements IILayout{
 
     constructor(pad: number, doc:IDocPages){
         this.doc=doc;
-        this.page_y0 = new Uint32Array(doc.doc_pages+1);
-        this.page_y1 = new Uint32Array(doc.doc_pages+1);
+        this.page_y0 = new Uint32Array(doc.doc_pages);
+        this.page_y1 = new Uint32Array(doc.doc_pages);
 
-        for(var i=1;i<=doc.doc_pages;i++){
+        this.page_y0[0]=0;
+        this.page_y1[0]=doc.page_height[0];
+        for(var i=1;i<doc.doc_pages;i++){
             this.page_y0[i]=this.page_y1[i-1]+pad;
             this.page_y1[i]=this.page_y0[i]+doc.page_height[i];
         }
@@ -24,15 +26,15 @@ export class ILayout implements IILayout{
     getPage(p: PageRange): number {
         const [x,y] = p;
         const l = this.page_y0.findIndex((a)=>(a>=y));
-        return Math.max(1,l);
+        return l;
     }
 
     getPageRange(rect: ViewRectangle): PageRange {
         const [x0,y0,x1,y1] = rect;
         const l = this.page_y1.findIndex((a)=>(a>=y0));
         const r = this.page_y0.findIndex((a)=>(a>=y1));
-        const lans = Math.max(1,l);
-        const rans = r!=-1?r-1:this.doc.doc_pages;
+        const lans = l;
+        const rans = r!=-1?r-1:this.doc.doc_pages-1;
         return [lans,rans];
     }
 
