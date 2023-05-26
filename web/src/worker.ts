@@ -23,12 +23,24 @@ registerPromiseWorker(async ([name, args]) => {
     
   } else if(name=="drawPageAsSVG"){
     const [pn]: [number] = args;
-    const a = mu_module.drawPageAsSVG(pn)
-    const b = mu_module.loadFont()
-    console.log(b)
+    return mu_module.drawPageAsSVG(pn)
+    //const b = mu_module.loadFont()
+    //return a;
+  } else if(name=="pageBounds"){
+    const bounds = mu_module.pageBounds();
+    const n = bounds.size() / 2;
+    const widths = new Uint32Array(n + 1);
+    const heights = new Uint32Array(n + 1);
+    for (var i = 1; i <= n; i++) {
+        widths[i] = bounds.get(2*(i-1));
+        heights[i] = bounds.get(2*(i-1)+1);
+    }
+    bounds.delete();
+    return [widths, heights];
   } else {
     const func = mu_module[name];
     if(!func) throw new Error(`Function ${name} not found`);
     return func(...args);
+    
   }
 });

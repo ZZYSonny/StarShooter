@@ -10,18 +10,13 @@ using namespace emscripten;
 
 const float dpi = 72;
 
-static fz_context *ctx;
-static pdf_document *doc;
+static fz_context *ctx = fz_new_context(NULL, NULL, 100 << 20);
+static pdf_document *doc = NULL;
 static pdf_page *lastPage = NULL;
 
-EMSCRIPTEN_KEEPALIVE
 int main()
 {
-	ctx = fz_new_context(NULL, NULL, 100 << 20);
-	if (!ctx)
-		EM_ASM({ throw new Error("Cannot create MuPDF context!"); });
-	fz_register_document_handlers(ctx);
-	return 0;
+
 }
 
 void wasm_rethrow(fz_context *ctx)
@@ -31,7 +26,6 @@ void wasm_rethrow(fz_context *ctx)
 	else
 		EM_ASM({ throw new Error(UTF8ToString($0)); }, fz_caught_message(ctx));
 }
-
 
 void openDocument(unsigned long dataPointer, unsigned int size)
 {
@@ -59,20 +53,6 @@ void openDocument(unsigned long dataPointer, unsigned int size)
 }
 
 
-int countPages()
-{
-	int n = 1;
-	fz_try(ctx)
-	{
-		n = pdf_count_pages(ctx, doc);
-	}
-	fz_catch(ctx)
-	{
-		wasm_rethrow(ctx);
-	}
-	return n;
-}
-
 static void loadPage(int number)
 {
 	static pdf_document *lastPageDoc = NULL;
@@ -92,6 +72,38 @@ static void loadPage(int number)
 	}
 }
 
+std::string documentTitle()
+{
+	std::string ans(128,0);
+	fz_try(ctx)
+	{
+		pdf_lookup_metadata(ctx, doc, FZ_META_INFO_TITLE, (char *)ans.data(), 128);
+	}
+	fz_catch(ctx)
+		wasm_rethrow(ctx);
+	return ans;
+}
+
+std::vector<int> pageBounds()
+{
+	int n = pdf_count_pages(ctx, doc);
+	std::vector<int> ans(2*n, 0);
+	fz_irect bbox = fz_empty_irect;
+	fz_try(ctx)
+	{
+		for(int i=1;i<=n;i++){
+			loadPage(i);
+			bbox = fz_round_rect(pdf_bound_page(ctx, lastPage));
+			//Width
+			ans[2*i-2] = bbox.x1 - bbox.x0;
+			//Height
+			ans[2*i-1] = bbox.y1 - bbox.y0;
+		}
+	}
+	fz_catch(ctx)
+		wasm_rethrow(ctx); 
+	return ans;
+}
 
 std::string drawPageAsSVG(int number)
 {
@@ -123,63 +135,6 @@ std::string drawPageAsSVG(int number)
 	return ans;
 }
 
-static fz_irect pageBounds(int number)
-{
-	fz_irect bbox = fz_empty_irect;
-	fz_try(ctx)
-	{
-		loadPage(number);
-		bbox = fz_round_rect(pdf_bound_page(ctx, lastPage));
-	}
-	fz_catch(ctx)
-		wasm_rethrow(ctx);
-	return bbox;
-}
-
-int pageWidth(int number)
-{
-	fz_irect bbox = fz_empty_irect;
-	fz_try(ctx)
-	{
-		loadPage(number);
-		bbox = pageBounds(number);
-	}
-	fz_catch(ctx)
-		wasm_rethrow(ctx);
-	return bbox.x1 - bbox.x0;
-}
-
-int pageHeight(int number)
-{
-	fz_irect bbox = fz_empty_irect;
-	fz_try(ctx)
-	{
-		loadPage(number);
-		bbox = pageBounds(number);
-	}
-	fz_catch(ctx)
-		wasm_rethrow(ctx);
-	return bbox.y1 - bbox.y0;
-}
-
-std::string documentTitle()
-{
-	std::string ans(128,0);
-	fz_try(ctx)
-	{
-		pdf_lookup_metadata(ctx, doc, FZ_META_INFO_TITLE, (char *)ans.data(), 128);
-	}
-	fz_catch(ctx)
-		wasm_rethrow(ctx);
-	return ans;
-}
-
-void outlineToJSON(fz_buffer *buf, fz_outline *outline);
-void outlineToJSONArray(fz_buffer *buf, fz_outline *outline){
-	fz_append_printf(ctx, buf, "[");
-	outlineToJSON(buf, outline);
-	fz_append_printf(ctx, buf, "]");
-}
 void outlineToJSON(fz_buffer *buf, fz_outline *outline){
 	fz_append_printf(ctx, buf, "{\"title\":\"%s\"", outline->title);
 	fz_append_printf(ctx, buf, ",\"page\":%d", outline->page.page);
@@ -187,7 +142,9 @@ void outlineToJSON(fz_buffer *buf, fz_outline *outline){
 	fz_append_printf(ctx, buf, ",\"y\":%f", outline->y);
 	if(outline->down) {
 		fz_append_printf(ctx, buf, ",\"children\":");
-		outlineToJSONArray(buf, outline->down);
+		fz_append_printf(ctx, buf, "[");
+		outlineToJSON(buf, outline->down);
+		fz_append_printf(ctx, buf, "]");
 	}
 	if(outline->next) {
 		fz_append_printf(ctx, buf, "},");
@@ -205,7 +162,9 @@ std::string loadOutline()
 	outline = pdf_load_outline(ctx, doc);
 	buf = fz_new_buffer(ctx, 0);
 
-	outlineToJSONArray(buf, outline);
+	fz_append_printf(ctx, buf, "[");
+	outlineToJSON(buf, outline);
+	fz_append_printf(ctx, buf, "]");
 
 	std::string ans((char*)buf->data);
 	
@@ -238,11 +197,11 @@ std::string loadFont()
 
 EMSCRIPTEN_BINDINGS(my_module) {
 	function("openDocument", &openDocument);
-    function("countPages", &countPages);
     function("drawPageAsSVG", &drawPageAsSVG);
-	function("pageWidth", &pageWidth);
-	function("pageHeight", &pageHeight);
+	function("pageBounds", &pageBounds);
 	function("documentTitle", &documentTitle);
 	function("loadOutline", &loadOutline);
 	function("loadFont", &loadFont);
+
+	register_vector<int>("vector<int>");
 }
