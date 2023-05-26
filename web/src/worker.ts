@@ -19,15 +19,13 @@ registerPromiseWorker(async ([name, args]) => {
     const ptr = mu_module._malloc(src.byteLength);
     mu_module.HEAPU8.set(src, ptr);
     return mu_module.openDocument(ptr, src.byteLength);
+
+    
   } else if(name=="drawPageAsSVG"){
     const [pn]: [number] = args;
-    return mu_module.drawPageAsSVG(pn)
-      //.replace('viewBox','buffered-rendering="static" viewBox')
-      //.replaceAll('font_', `font_${pn}_`)
-      //.replaceAll('<mask id="ma',`<mask id="ma_${pn}_`)
-      //.replaceAll('"url(#ma',`"url(#ma_${pn}_`)
-      //.replaceAll('<clipPath id="cp',`<clipPath id="cp_${pn}_`)
-      //.replaceAll('"url(#cp',`"url(#cp_${pn}_`);
+    const a = mu_module.drawPageAsSVG(pn)
+    const b = mu_module.loadFont()
+    console.log(b)
   } else {
     const func = mu_module[name];
     if(!func) throw new Error(`Function ${name} not found`);

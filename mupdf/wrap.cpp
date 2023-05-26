@@ -3,8 +3,7 @@
 using namespace emscripten;
 #include "mupdf/fitz.h"
 #include "mupdf/pdf.h"
-#include "mupdf/fitz/buffer.h"
-#include "mupdf/fitz/output-svg.h"
+#include "mupdf/pdf/font.h"
 #include <string.h>
 #include <string>
 #include <math.h>
@@ -108,7 +107,7 @@ std::string drawPageAsSVG(int number)
 		out = fz_new_output_with_buffer(ctx, buf);
 		{
 			bbox = pdf_bound_page(ctx, lastPage);
-			dev = fz_new_svg_device_with_id(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, 1, 1, &number);
+			dev = fz_new_svg_device_with_id(ctx, out, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0, 1, 0, &number);
 			pdf_run_page(ctx, lastPage, dev, fz_identity, NULL);
 			fz_close_device(ctx, dev);
 			fz_drop_device(ctx, dev);
@@ -215,9 +214,26 @@ std::string loadOutline()
 	return ans;
 }
 
-void f()
+std::string loadFont()
 {
-	//doc->resources.fonts;
+	std::string ans;
+	auto page_res = pdf_page_resources(ctx, lastPage);
+	auto page_font_objs = pdf_dict_get(ctx, page_res, PDF_NAME(Font));
+	if (page_font_objs)
+	{
+		int n = pdf_dict_len(ctx, page_font_objs);
+		for (int i = 0; i < n; i++)
+		{
+			auto *font_obj = pdf_dict_get_val(ctx, page_font_objs, i);
+			auto *font_desc = pdf_load_font(ctx, doc, page_res, font_obj);
+			long font_id = (long)(&font_desc->font->name[0]);
+			ans += std::to_string((long)(&font_desc->font->name[0]));
+			ans += ":";
+			ans += std::string(font_desc->font->name);
+			ans += "\n";
+		}
+	}
+	return ans;
 }
 
 EMSCRIPTEN_BINDINGS(my_module) {
@@ -228,4 +244,5 @@ EMSCRIPTEN_BINDINGS(my_module) {
 	function("pageHeight", &pageHeight);
 	function("documentTitle", &documentTitle);
 	function("loadOutline", &loadOutline);
+	function("loadFont", &loadFont);
 }
