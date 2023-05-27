@@ -1,139 +1,195 @@
-import { CacheMap } from "../helper/cache";
-import { ILayout } from "../pdf/layout";
+import { evTransformer, getEarlyVPBox, PageRange, rangeEqual, scrollVPto, ViewRectangle } from "../helper/viewport";
 import { IBackend, IDocPages, IDocRender } from "../pdf/interface";
-import {ViewRectangle, evTransformer,getCurVPBox,getEarlyVPBox} from "../helper/viewport";
-import { PageRange } from "../helper/viewport";
 
-const IMAGE_CAPACITY = 12;
 
-export interface IPageImage {
-  img: HTMLElement;
-  div: HTMLDivElement;
-  pn: number;
+class DivLayout {
+    doc: IDocPages
+    pageStartX: Uint32Array
+    pageEndY: Uint32Array
+    pageImgs: HTMLDivElement[] = []
+    writtenPages: Set<number> = new Set()
+
+    constructor(doc: IDocPages, pad: number) {
+        this.doc = doc;
+        this.pageStartX = new Uint32Array(doc.doc_pages);
+        this.pageEndY = new Uint32Array(doc.doc_pages);
+
+        this.pageStartX[0] = 0;
+        this.pageEndY[0] = doc.page_height[0];
+        for (var i = 1; i < doc.doc_pages; i++) {
+            this.pageStartX[i] = this.pageEndY[i - 1] + pad;
+            this.pageEndY[i] = this.pageStartX[i] + doc.page_height[i];
+        }
+
+        const doc_div = document.createElement("div");
+        doc_div.style.height = `${this.pageEndY[this.pageEndY.length - 1]}px`;
+        doc_div.style.setProperty("--image-quality", "auto");
+        document.body.appendChild(doc_div);
+
+        for (var i = 0; i < doc.doc_pages; i++) {
+            const page_div = document.createElement('div');
+            const page_img = document.createElement('div');
+
+            page_div.className = 'PDFPageContainer'
+            page_img.className = 'PDFPageImage';
+
+            page_div.style.top = `${this.pageStartX[i]}px`
+            page_div.style.left = `0px`;
+            page_div.style.height = `${this.doc.page_height[i]}px`
+
+            page_img.style.width = `${this.doc.page_width[i]}px`
+            page_img.style.height = `${this.doc.page_height[i]}px`
+
+            page_div.appendChild(page_img);
+            doc_div.appendChild(page_div);
+            this.pageImgs.push(page_img)
+        }
+    }
+
+    getPage(p: PageRange): number {
+        const [x, y] = p;
+        const l = this.pageStartX.findIndex((a) => (a >= y));
+        return l;
+    }
+
+    getPageRange(rect: ViewRectangle): PageRange {
+        const [x0, y0, x1, y1] = rect;
+        const l = this.pageEndY.findIndex((a) => (a >= y0));
+        const r = this.pageStartX.findIndex((a) => (a >= y1));
+        const lans = l;
+        const rans = r != -1 ? r - 1 : this.doc.doc_pages - 1;
+        return [lans, rans];
+    }
+
+    scrollTo(pn: number, x: number, y: number) {
+        scrollVPto({
+            left: x,
+            top: this.pageStartX[pn + 1] + y
+        })
+    }
+
+    setContent(pn: number, innerHTML: string) {
+        console.assert(!this.writtenPages.has(pn))
+        this.pageImgs[pn].innerHTML = innerHTML;
+        this.writtenPages.add(pn);
+    }
+
+    clearContentOutside(p: PageRange) {
+        for (const i of this.writtenPages)
+            if (i < p[0] || i > p[1]) {
+                this.pageImgs[i].innerHTML = '';
+                this.writtenPages.delete(i);
+            }
+    }
+}
+
+class DivUpdaterState {
+    layout: DivLayout
+    isScrolling: boolean
+    rangeInScreen: PageRange
+    rangeOutScreen: PageRange
+
+    constructor(layout: DivLayout, scroll: boolean, ratio: number){
+        if(layout){
+            this.layout = layout;
+            this.isScrolling = scroll;
+            this.rangeOutScreen = layout.getPageRange(getEarlyVPBox(ratio));
+            this.rangeInScreen = layout.getPageRange(getEarlyVPBox(0));    
+        } else {
+            this.isScrolling = scroll;
+            this.rangeOutScreen = [-1, -1];
+            this.rangeInScreen = [-1, -1];
+        }
+    }
+
+    countUnrendered(): number{
+        var ans = 0;
+        for(var i = this.rangeInScreen[0]; i <= this.rangeInScreen[1]; i++)
+            if(!this.layout.writtenPages.has(i))
+                ans++;
+        return ans;
+    }
+
+    changed(other: DivUpdaterState): boolean{
+        return this.isScrolling != other.isScrolling
+            || this.rangeOutScreen[0] != other.rangeOutScreen[0]
+            || this.rangeOutScreen[1] != other.rangeOutScreen[1]
+    }
+}
+
+class DivUpdater {
+    layout: DivLayout
+    render: IDocRender
+    isLoopRunning: boolean = false
+    state: DivUpdaterState = new DivUpdaterState(null, true, 0);
+
+    constructor(layout: DivLayout, render: IDocRender) {
+        this.layout = layout;
+        this.render = render;
+        const cb1 = () => this.scrollingCallback();
+        const cb2 = evTransformer("scroll", 160, null,
+            () => this.scrollEndCallback()
+        );
+        window.addEventListener("scroll", cb1);
+        window.addEventListener("scroll", cb2);
+        visualViewport.addEventListener("scroll", cb1);
+        visualViewport.addEventListener("scroll", cb2);
+        this.scrollEndCallback();
+    }
+
+    scrollingCallback(){
+        const newState = new DivUpdaterState(this.layout, true, 2)
+        if(this.state.changed(newState))
+            if(this.state.countUnrendered()>=1){
+                console.log("Scrolling Too Fast")
+            } else {
+                this.state = newState;
+                this.updatePageLoop();
+            }
+    }
+
+    scrollEndCallback(){
+        const newState = new DivUpdaterState(this.layout, true, 5)
+        if(this.state.changed(newState)){
+            this.state = newState;
+            this.updatePageLoop();
+        }
+    }
+
+    async updatePageLoop(){
+        if(this.isLoopRunning) return;
+        this.isLoopRunning = true;
+
+        var stateChanged = false;
+        const local = this.state;
+
+        for(const range of [local.rangeInScreen, local.rangeOutScreen])
+            for(var i = range[0]; i <= range[1]; i++)
+                if (!this.layout.writtenPages.has(i)){
+                    const s = await this.render.renderSVG(i, 1);
+                    this.layout.setContent(i, s);
+                    if(local.isScrolling)
+                        console.log(`ScrollIng | Rendered Page ${i}`)
+                    else
+                        console.log(`ScrollEnd | Rendered Page ${i}`)
+                    
+                    stateChanged ||= this.state.changed(this.state)
+                }
+        
+        if(local.isScrolling && !stateChanged){
+            const keepRange = this.layout.getPageRange(getEarlyVPBox(5));
+            console.log(`Removing | ${keepRange[0]} - ${keepRange[1]}`)
+            this.layout.clearContentOutside(keepRange);
+        }
+
+        this.isLoopRunning = false;
+        if(stateChanged) this.updatePageLoop();
+    }
 }
 
 export class DocViewer {
-  doc_page: IDocPages;
-  doc_render: IDocRender;
-  viewer_layout: ILayout;
-  viewer_div = document.createElement("div");
-  viewer_pages = new CacheMap<number, IPageImage>();
-
-  async init(doc: IBackend, layout: ILayout) {
-    this.viewer_layout = layout;
-    this.viewer_div.style.setProperty("--image-quality", "auto");
-    this.doc_page = doc.pageinfo;
-    this.doc_render = doc.renderer;
-    layout.setContainerCSS(this.viewer_div);
-    document.body.appendChild(this.viewer_div);
-    document.title = this.doc_page.doc_title;
-
-    const initBox = this.viewer_layout.getPageRange(getEarlyVPBox(2));
-    this.viewUpdateEarly(initBox);
-
-    const cb_scroll1 = () => this.onScrollIng();
-    const cb_scroll2 = evTransformer("scroll", 160, 
-      null,
-      () => this.onScrollEnd()
-    );
-    window.addEventListener("scroll", cb_scroll1);
-    window.addEventListener("scroll", cb_scroll2);
-    visualViewport.addEventListener("scroll", cb_scroll1);
-    visualViewport.addEventListener("scroll", cb_scroll2);
-  }
-
-  /**
-   * Insert an empty page to the viewer
-   */
-  pageAdd(pn: number) {
-    const info = {
-      img: document.createElement("div"),
-      div: document.createElement("div"),
-      pn: pn
+    constructor(doc: IBackend){
+        const layout = new DivLayout(doc.pageinfo, 25)
+        const updater = new DivUpdater(layout, doc.renderer);
     }
-    const img = info.img;
-    const div = info.div;
-    this.viewer_pages.set(pn, info);
-    this.viewer_layout.setPageCSS(div, img, pn);
-    this.viewer_div.appendChild(div);
-    div.appendChild(img);
-    return info;
-  }
-
-  /**
-   * Remove a page from the viewer
-   */
-  pageRemove(info: IPageImage) {
-    const { div, img } = info;
-    console.log(`Removing ${info.pn}`);
-    this.viewer_div.removeChild(div);
-    div.removeChild(img);
-    img.className="";
-  }
-
-  /**
-   * Rerender *page* at scale *ratio*
-   */
-  async pageDraw(page: IPageImage, priority: number){
-    page.img.innerHTML = await this.doc_render.renderSVG(page.pn, -1);
-  }
-
-  /**
-   * Update the view **after scrolling finishes**
-   * - Prerender nearby invisible (out of viewport) pages
-   * - Rerender visible (in viewport) pages if ratio mismatches
-   *
-   * **Very computation heavy**
-   */
-  async viewUpdateEarly([l, r]: PageRange) {
-    for (var i = l; i <= r; i++) {
-      if (!this.viewer_pages.has(i)) {
-        console.log(`Early Adding ${i}`)
-        const info = this.pageAdd(i);
-        await this.pageDraw(info, 1);
-      }
-    }
-    this.viewer_pages.trim(
-      IMAGE_CAPACITY,
-      (x) => l <= x && x <= r,
-      (e) => this.pageRemove(e)
-    );
-  }
-
-  /**
-   * Update the view **during scrolling**
-   * - Prerender next/prev page if they do not exist
-   *
-   * Less computation heavy, **but may introduce lag**
-   */
-  async viewUpdateUrgent([l, r]: PageRange) {
-    const pages: number[] = [];
-    if (l - 1 >= 1) pages.push(l - 1);
-    if (r + 1 < this.doc_page.doc_pages) pages.push(r + 1);
-    for (var i of pages) {
-      //add box if box does not exist
-      if (!this.viewer_pages.has(i)) {
-        console.log(`Urgent Adding ${i}`)
-        const info = this.pageAdd(i);
-        await this.pageDraw(info, 0);
-      }
-    }
-  }
-
-  lastViewBox: ViewRectangle = getCurVPBox();
-  onScrollIng() {
-    const curViewBox = getCurVPBox();
-    const box = this.viewer_layout.getPageRange(curViewBox);
-    if (Math.abs(curViewBox[1] - this.lastViewBox[1]) < 0.5 * visualViewport.height) {
-      this.viewUpdateUrgent(box);
-    } else {
-      console.log("Scrolling Too Fast, Skipping Urgent Update")
-    }
-    this.lastViewBox = curViewBox;
-  }
-
-  onScrollEnd() {
-    const box = this.viewer_layout.getPageRange(getEarlyVPBox(3));
-    this.viewUpdateEarly(box);
-  }
 }

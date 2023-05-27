@@ -20,6 +20,10 @@ export function getEarlyVPBox(k: number): ViewRectangle {
   return rect;
 }
 
+export function rangeEqual(a: PageRange, b: PageRange) {
+  return a[0] == b[0] && a[1] == b[1];
+}
+
 export function evTransformer(
   name: string,
   time: number,
