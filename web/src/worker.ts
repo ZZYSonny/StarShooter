@@ -19,13 +19,9 @@ registerPromiseWorker(async ([name, args]) => {
     const ptr = mu_module._malloc(src.byteLength);
     mu_module.HEAPU8.set(src, ptr);
     return mu_module.openDocument(ptr, src.byteLength);
-
-    
   } else if(name=="drawPageAsSVG"){
     const [pn]: [number] = args;
     return mu_module.drawPageAsSVG(pn)
-    //const b = mu_module.loadFont()
-    //return a;
   } else if(name=="pageBounds"){
     const bounds = mu_module.pageBounds();
     const n = bounds.size() / 2;
@@ -37,6 +33,8 @@ registerPromiseWorker(async ([name, args]) => {
     }
     bounds.delete();
     return [widths, heights];
+  } else if(name=="loadFont"){
+    return ""
   } else {
     const func = mu_module[name];
     if(!func) throw new Error(`Function ${name} not found`);

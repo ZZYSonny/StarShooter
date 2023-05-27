@@ -1,22 +1,22 @@
+import { MuBackend, PDFOutlineObject } from "../pdf/mupdf";
 import { evTransformer, getCurVPBox, getEarlyVPBox, PageRange, rangeEqual, scrollVPto, ViewRectangle } from "../helper/viewport";
-import { IBackend, IDocPages, IDocRender, PDFOutlineObject } from "../pdf/interface";
 
 
 class DivLayout {
-    doc: IDocPages
+    doc: MuBackend
     pageStartX: Uint32Array
     pageEndY: Uint32Array
     pageImgs: HTMLDivElement[] = []
     writtenPages: Set<number> = new Set()
 
-    constructor(doc: IDocPages, pad: number) {
+    constructor(doc: MuBackend, pad: number) {
         this.doc = doc;
-        this.pageStartX = new Uint32Array(doc.doc_pages);
-        this.pageEndY = new Uint32Array(doc.doc_pages);
+        this.pageStartX = new Uint32Array(doc.num_pages);
+        this.pageEndY = new Uint32Array(doc.num_pages);
 
         this.pageStartX[0] = 0;
         this.pageEndY[0] = doc.page_height[0];
-        for (var i = 1; i < doc.doc_pages; i++) {
+        for (var i = 1; i < doc.num_pages; i++) {
             this.pageStartX[i] = this.pageEndY[i - 1] + pad;
             this.pageEndY[i] = this.pageStartX[i] + doc.page_height[i];
         }
@@ -26,7 +26,7 @@ class DivLayout {
         doc_div.style.setProperty("--image-quality", "auto");
         document.body.appendChild(doc_div);
 
-        for (var i = 0; i < doc.doc_pages; i++) {
+        for (var i = 0; i < doc.num_pages; i++) {
             const page_div = document.createElement('div');
             const page_img = document.createElement('div');
 
@@ -57,7 +57,7 @@ class DivLayout {
         const l = this.pageEndY.findIndex((a) => (a >= y0));
         const r = this.pageStartX.findIndex((a) => (a >= y1));
         const lans = l;
-        const rans = r != -1 ? r - 1 : this.doc.doc_pages - 1;
+        const rans = r != -1 ? r - 1 : this.doc.num_pages - 1;
         return [lans, rans];
     }
 
@@ -118,14 +118,14 @@ class DivUpdaterState {
 }
 
 class DivUpdater {
+    doc: MuBackend
     layout: DivLayout
-    render: IDocRender
     isLoopRunning: boolean = false
     state: DivUpdaterState = new DivUpdaterState(null, true, 0);
 
-    constructor(layout: DivLayout, render: IDocRender) {
+    constructor(doc: MuBackend, layout: DivLayout) {
         this.layout = layout;
-        this.render = render;
+        this.doc = doc;
         const cb1 = () => this.scrollingCallback();
         const cb2 = evTransformer("scroll", 160, null,
             () => this.scrollEndCallback()
@@ -166,7 +166,7 @@ class DivUpdater {
         for (const range of [local.rangeInScreen, local.rangeOutScreen])
             for (var i = range[0]; i <= range[1]; i++)
                 if (!this.layout.writtenPages.has(i)) {
-                    const s = await this.render.renderSVG(i, 1);
+                    const s = await this.doc.draw(i, 1);
                     this.layout.setContent(i, s);
                     if (local.isScrolling)
                         console.log(`ScrollIng | Rendered Page ${i}`)
@@ -209,23 +209,21 @@ class DocOutline {
         }
     }
 
-    constructor(doc: IBackend, layout: DivLayout){
-        doc.interact.getOutline().then(outline => {
-            const outlinehtml = this.outlineToHTML(outline, layout);
-            const menu = document.createElement("div");
-            menu.id = "MenuOutline"
-            menu.appendChild(outlinehtml)
-            document.body.appendChild(menu);
-        })
+    constructor(doc: MuBackend, layout: DivLayout){
+        const outlinehtml = this.outlineToHTML(doc.doc_outline, layout);
+        const menu = document.createElement("div");
+        menu.id = "MenuOutline"
+        menu.appendChild(outlinehtml)
+        document.body.appendChild(menu);
     }
 }
 
 class DocHotkey {
-    constructor(doc: IBackend, layout: DivLayout){
+    constructor(doc: MuBackend, layout: DivLayout){
         document.addEventListener('keydown', ev => {
             const curPageNum = layout.getPageRange(getCurVPBox())[0];
             if (ev.key == 'n') {
-                layout.scrollTo(Math.min(curPageNum + 1, doc.pageinfo.doc_pages - 1), 0, 0);
+                layout.scrollTo(Math.min(curPageNum + 1, doc.num_pages - 1), 0, 0);
             } else if (ev.key == 'k') {
                 layout.scrollTo(Math.max(curPageNum - 1, 0), 0, 0);
             }
@@ -234,10 +232,16 @@ class DocHotkey {
 
 }
 
+class DocFont {
+    constructor(doc: MuBackend){
+        
+    }
+}
+
 export class DocViewer {
-    constructor(doc: IBackend) {
-        const layout = new DivLayout(doc.pageinfo, 25)
-        const updater = new DivUpdater(layout, doc.renderer);
+    constructor(doc: MuBackend) {
+        const layout = new DivLayout(doc, 25)
+        const updater = new DivUpdater(doc, layout);
         const hotkey = new DocHotkey(doc, layout);
         const outline = new DocOutline(doc, layout);
     }
