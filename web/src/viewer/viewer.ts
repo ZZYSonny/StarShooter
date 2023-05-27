@@ -1,5 +1,5 @@
-import { evTransformer, getEarlyVPBox, PageRange, rangeEqual, scrollVPto, ViewRectangle } from "../helper/viewport";
-import { IBackend, IDocPages, IDocRender } from "../pdf/interface";
+import { evTransformer, getCurVPBox, getEarlyVPBox, PageRange, rangeEqual, scrollVPto, ViewRectangle } from "../helper/viewport";
+import { IBackend, IDocPages, IDocRender, PDFOutlineObject } from "../pdf/interface";
 
 
 class DivLayout {
@@ -64,7 +64,7 @@ class DivLayout {
     scrollTo(pn: number, x: number, y: number) {
         scrollVPto({
             left: x,
-            top: this.pageStartX[pn + 1] + y
+            top: this.pageStartX[pn] + y
         })
     }
 
@@ -89,12 +89,12 @@ class DivUpdaterState {
     rangeInScreen: PageRange
     rangeOutScreen: PageRange
 
-    constructor(layout: DivLayout, scroll: boolean, ratio: number){
-        if(layout){
+    constructor(layout: DivLayout, scroll: boolean, ratio: number) {
+        if (layout) {
             this.layout = layout;
             this.isScrolling = scroll;
             this.rangeOutScreen = layout.getPageRange(getEarlyVPBox(ratio));
-            this.rangeInScreen = layout.getPageRange(getEarlyVPBox(0));    
+            this.rangeInScreen = layout.getPageRange(getEarlyVPBox(0));
         } else {
             this.isScrolling = scroll;
             this.rangeOutScreen = [-1, -1];
@@ -102,15 +102,15 @@ class DivUpdaterState {
         }
     }
 
-    countUnrendered(): number{
+    countUnrendered(): number {
         var ans = 0;
-        for(var i = this.rangeInScreen[0]; i <= this.rangeInScreen[1]; i++)
-            if(!this.layout.writtenPages.has(i))
+        for (var i = this.rangeInScreen[0]; i <= this.rangeInScreen[1]; i++)
+            if (!this.layout.writtenPages.has(i))
                 ans++;
         return ans;
     }
 
-    changed(other: DivUpdaterState): boolean{
+    changed(other: DivUpdaterState): boolean {
         return this.isScrolling != other.isScrolling
             || this.rangeOutScreen[0] != other.rangeOutScreen[0]
             || this.rangeOutScreen[1] != other.rangeOutScreen[1]
@@ -137,10 +137,10 @@ class DivUpdater {
         this.scrollEndCallback();
     }
 
-    scrollingCallback(){
+    scrollingCallback() {
         const newState = new DivUpdaterState(this.layout, true, 2)
-        if(this.state.changed(newState))
-            if(this.state.countUnrendered()>=1){
+        if (this.state.changed(newState))
+            if (this.state.countUnrendered() >= 1) {
                 console.log("Scrolling Too Fast")
             } else {
                 this.state = newState;
@@ -148,48 +148,97 @@ class DivUpdater {
             }
     }
 
-    scrollEndCallback(){
+    scrollEndCallback() {
         const newState = new DivUpdaterState(this.layout, true, 5)
-        if(this.state.changed(newState)){
+        if (this.state.changed(newState)) {
             this.state = newState;
             this.updatePageLoop();
         }
     }
 
-    async updatePageLoop(){
-        if(this.isLoopRunning) return;
+    async updatePageLoop() {
+        if (this.isLoopRunning) return;
         this.isLoopRunning = true;
 
         var stateChanged = false;
         const local = this.state;
 
-        for(const range of [local.rangeInScreen, local.rangeOutScreen])
-            for(var i = range[0]; i <= range[1]; i++)
-                if (!this.layout.writtenPages.has(i)){
+        for (const range of [local.rangeInScreen, local.rangeOutScreen])
+            for (var i = range[0]; i <= range[1]; i++)
+                if (!this.layout.writtenPages.has(i)) {
                     const s = await this.render.renderSVG(i, 1);
                     this.layout.setContent(i, s);
-                    if(local.isScrolling)
+                    if (local.isScrolling)
                         console.log(`ScrollIng | Rendered Page ${i}`)
                     else
                         console.log(`ScrollEnd | Rendered Page ${i}`)
-                    
+
                     stateChanged ||= this.state.changed(this.state)
                 }
-        
-        if(local.isScrolling && !stateChanged){
+
+        if (local.isScrolling && !stateChanged) {
             const keepRange = this.layout.getPageRange(getEarlyVPBox(5));
             console.log(`Removing | ${keepRange[0]} - ${keepRange[1]}`)
             this.layout.clearContentOutside(keepRange);
         }
 
         this.isLoopRunning = false;
-        if(stateChanged) this.updatePageLoop();
+        if (stateChanged) this.updatePageLoop();
     }
 }
 
+class DocOutline {
+    outlineToHTML(out: PDFOutlineObject, layout: DivLayout) {
+        const title = document.createElement('span');
+        title.innerHTML = out.title + "&#10;&#13;";
+        title.addEventListener('click', (ev) => {
+            layout.scrollTo(out.page, out.x, out.y)
+        });
+        if (out.children) {
+            const details = document.createElement("details");
+            const summary = document.createElement("summary");
+            summary.appendChild(title);
+            details.appendChild(summary);
+            for (const c of out.children) {
+                details.appendChild(this.outlineToHTML(c, layout));
+            }
+            return details;
+        } else {
+            title.className = "MenuOutlineTitleSingle";
+            return title;
+        }
+    }
+
+    constructor(doc: IBackend, layout: DivLayout){
+        doc.interact.getOutline().then(outline => {
+            const outlinehtml = this.outlineToHTML(outline, layout);
+            const menu = document.createElement("div");
+            menu.id = "MenuOutline"
+            menu.appendChild(outlinehtml)
+            document.body.appendChild(menu);
+        })
+    }
+}
+
+class DocHotkey {
+    constructor(doc: IBackend, layout: DivLayout){
+        document.addEventListener('keydown', ev => {
+            const curPageNum = layout.getPageRange(getCurVPBox())[0];
+            if (ev.key == 'n') {
+                layout.scrollTo(Math.min(curPageNum + 1, doc.pageinfo.doc_pages - 1), 0, 0);
+            } else if (ev.key == 'k') {
+                layout.scrollTo(Math.max(curPageNum - 1, 0), 0, 0);
+            }
+        })
+    }
+
+}
+
 export class DocViewer {
-    constructor(doc: IBackend){
+    constructor(doc: IBackend) {
         const layout = new DivLayout(doc.pageinfo, 25)
         const updater = new DivUpdater(layout, doc.renderer);
+        const hotkey = new DocHotkey(doc, layout);
+        const outline = new DocOutline(doc, layout);
     }
 }
